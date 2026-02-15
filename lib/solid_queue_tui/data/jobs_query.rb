@@ -5,7 +5,7 @@ module SolidQueueTui
     class JobsQuery
       Job = Struct.new(
         :id, :queue_name, :class_name, :priority, :status,
-        :active_job_id, :concurrency_key,
+        :active_job_id, :concurrency_key, :arguments,
         :scheduled_at, :finished_at, :created_at,
         :started_at, :worker_id, :expires_at,
         keyword_init: true
@@ -101,7 +101,7 @@ module SolidQueueTui
         sql = <<~SQL
           SELECT
             j.id, j.queue_name, j.class_name, j.priority,
-            j.active_job_id, j.created_at,
+            j.active_job_id, j.arguments, j.created_at,
             se.scheduled_at
           FROM solid_queue_scheduled_executions se
           JOIN solid_queue_jobs j ON j.id = se.job_id
@@ -122,6 +122,7 @@ module SolidQueueTui
             priority: row["priority"].to_i,
             status: "scheduled",
             active_job_id: row["active_job_id"],
+            arguments: parse_json(row["arguments"]),
             scheduled_at: parse_time(row["scheduled_at"]),
             created_at: parse_time(row["created_at"])
           )
@@ -135,7 +136,7 @@ module SolidQueueTui
         sql = <<~SQL
           SELECT
             j.id, j.queue_name, j.class_name, j.priority,
-            j.active_job_id, j.finished_at, j.created_at
+            j.active_job_id, j.arguments, j.finished_at, j.created_at
           FROM solid_queue_jobs j
           WHERE j.finished_at IS NOT NULL
         SQL
@@ -152,6 +153,7 @@ module SolidQueueTui
             priority: row["priority"].to_i,
             status: "completed",
             active_job_id: row["active_job_id"],
+            arguments: parse_json(row["arguments"]),
             finished_at: parse_time(row["finished_at"]),
             created_at: parse_time(row["created_at"])
           )
@@ -161,6 +163,13 @@ module SolidQueueTui
       private_class_method def self.parse_time(value)
         return nil if value.nil?
         value.is_a?(Time) ? value : Time.parse(value.to_s)
+      rescue
+        nil
+      end
+
+      private_class_method def self.parse_json(value)
+        return nil if value.nil?
+        value.is_a?(String) ? JSON.parse(value) : value
       rescue
         nil
       end

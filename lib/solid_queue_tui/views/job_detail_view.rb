@@ -169,6 +169,17 @@ module SolidQueueTui
         lines << detail_line("Scheduled At", format_time(@job.scheduled_at))
         lines << detail_line("Finished At", format_time(@job.finished_at))
 
+        if @job.arguments.is_a?(Hash) || @job.arguments.is_a?(Array)
+          lines << empty_line
+          lines << section_header("Arguments")
+          args_str = JSON.pretty_generate(@job.arguments) rescue @job.arguments.to_s
+          args_str.split("\n").each do |arg_line|
+            lines << @tui.text_line(spans: [
+              @tui.text_span(content: "  #{arg_line}", style: @tui.style(fg: :white))
+            ])
+          end
+        end
+
         visible_lines = lines.drop(@scroll_offset)
 
         frame.render_widget(
