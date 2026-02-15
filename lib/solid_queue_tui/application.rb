@@ -27,9 +27,7 @@ module SolidQueueTui
       "workers"     => VIEW_WORKERS
     }.freeze
 
-    def initialize(database_url: nil, refresh_interval: 2, dev: false)
-      @database_url = database_url
-      @refresh_interval = refresh_interval
+    def initialize(dev: false)
       @current_view = VIEW_DASHBOARD
       @last_refresh = Time.at(0)
       @stats = Data::Stats.empty
@@ -41,7 +39,8 @@ module SolidQueueTui
     end
 
     def run
-      Connection.establish!(database_url: @database_url)
+      config = Connection.establish!
+      @refresh_interval = config.fetch("refresh", 2).to_i
       setup_dev_reloader! if @dev
 
       RatatuiRuby.run do |tui|

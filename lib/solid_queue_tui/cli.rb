@@ -22,14 +22,6 @@ module SolidQueueTui
         opts.separator ""
         opts.separator "Options:"
 
-        opts.on("--database-url URL", "Database connection URL") do |v|
-          options[:database_url] = v
-        end
-
-        opts.on("--refresh SECONDS", Integer, "Refresh interval in seconds (default: 2)") do |v|
-          options[:refresh_interval] = v
-        end
-
         opts.on("--dev", "Enable hot-reload (watches lib/ for changes)") do
           options[:dev] = true
         end
@@ -41,6 +33,11 @@ module SolidQueueTui
 
         opts.on("-h", "--help", "Show this help") do
           puts opts
+          puts ""
+          puts "Configuration:"
+          puts "  Create config/solid_tui.yml with:"
+          puts "    database_url: sqlite3:storage/queue.sqlite3"
+          puts "    refresh: 2"
           exit
         end
       end.parse!(args)
