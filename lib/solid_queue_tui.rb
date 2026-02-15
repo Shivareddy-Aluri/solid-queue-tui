@@ -19,7 +19,6 @@ require_relative "solid_queue_tui/actions/discard_job"
 
 # Components
 require_relative "solid_queue_tui/components/header"
-require_relative "solid_queue_tui/components/stats_bar"
 require_relative "solid_queue_tui/components/job_table"
 require_relative "solid_queue_tui/components/help_bar"
 

@@ -28,7 +28,6 @@ module SolidQueueTui
 
     def run
       Connection.establish!(database_url: @database_url)
-      @database_info = database_info_string
       setup_dev_reloader! if @dev
 
       RatatuiRuby.run do |tui|
@@ -83,8 +82,7 @@ module SolidQueueTui
         # Header
         Components::Header.new(
           @tui,
-          current_view: @current_view,
-          database_info: @database_info
+          current_view: @current_view
         ).render(frame, header_area)
 
         # Content — current view or detail overlay
@@ -263,15 +261,6 @@ module SolidQueueTui
         init_views
         refresh_data!
       end
-    end
-
-    def database_info_string
-      config = ActiveRecord::Base.connection_db_config
-      adapter = config.adapter
-      database = config.database
-      "#{adapter}://#{database}"
-    rescue
-      ENV["DATABASE_URL"] || "connected"
     end
 
     def status_message

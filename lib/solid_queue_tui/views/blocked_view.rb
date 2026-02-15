@@ -24,7 +24,8 @@ module SolidQueueTui
           { key: :class_name,      label: "CLASS",            width: :fill },
           { key: :priority,        label: "PRI",              width: 5 },
           { key: :concurrency_key, label: "CONCURRENCY KEY",  width: :fill },
-          { key: :age,             label: "BLOCKED SINCE",    width: 14 }
+          { key: :expires_at,      label: "EXPIRES AT",       width: 20 },
+          { key: :blocked_since,   label: "BLOCKED SINCE",    width: 14 }
         ]
 
         rows = @jobs.map do |job|
@@ -33,8 +34,9 @@ module SolidQueueTui
             queue_name: job.queue_name,
             class_name: job.class_name,
             priority: job.priority,
-            concurrency_key: job.respond_to?(:concurrency_key) ? job.concurrency_key : "n/a",
-            age: time_ago(job.created_at)
+            concurrency_key: job.concurrency_key || "n/a",
+            expires_at: format_time(job.expires_at),
+            blocked_since: time_ago(job.created_at)
           }
         end
 
@@ -97,6 +99,11 @@ module SolidQueueTui
         return if @jobs.empty?
         @selected_row = @jobs.size - 1
         @table_state.select(@selected_row)
+      end
+
+      def format_time(time)
+        return "n/a" unless time
+        time.strftime("%Y-%m-%d %H:%M:%S")
       end
 
       def time_ago(time)
