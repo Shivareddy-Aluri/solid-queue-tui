@@ -122,7 +122,7 @@ module SolidQueueTui
           @filter_mode = true
           @filter_input = @filter || ""
           nil
-        in { type: :key, code: "escape" }
+        in { type: :key, code: "esc" }
           @filter = nil
           @filter_input = ""
           :refresh
@@ -151,7 +151,7 @@ module SolidQueueTui
             Actions::RetryJob.retry_all
             :refresh
           end
-        in { type: :key, code: "n" } | { type: :key, code: "escape" }
+        in { type: :key, code: "n" } | { type: :key, code: "esc" }
           @confirm_action = nil
           nil
         else
@@ -167,7 +167,7 @@ module SolidQueueTui
           @selected_row = 0
           @table_state.select(0)
           :refresh
-        in { type: :key, code: "escape" }
+        in { type: :key, code: "esc" }
           @filter_mode = false
           nil
         in { type: :key, code: "backspace" }

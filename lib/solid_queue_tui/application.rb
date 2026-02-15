@@ -16,6 +16,17 @@ module SolidQueueTui
 
     VIEW_COUNT = 8
 
+    COMMAND_MAP = {
+      "dashboard"   => VIEW_DASHBOARD,
+      "queues"      => VIEW_QUEUES,
+      "failed"      => VIEW_FAILED,
+      "inprogress"  => VIEW_IN_PROGRESS,
+      "blocked"     => VIEW_BLOCKED,
+      "scheduled"   => VIEW_SCHEDULED,
+      "finished"    => VIEW_FINISHED,
+      "workers"     => VIEW_WORKERS
+    }.freeze
+
     def initialize(database_url: nil, refresh_interval: 2, dev: false)
       @database_url = database_url
       @refresh_interval = refresh_interval
@@ -23,6 +34,9 @@ module SolidQueueTui
       @last_refresh = Time.at(0)
       @stats = Data::Stats.empty
       @show_help = false
+      @command_mode = false
+      @command_input = ""
+      @command_error = nil
       @dev = dev
     end
 
@@ -92,14 +106,18 @@ module SolidQueueTui
           current_view.render(frame, content_area)
         end
 
-        # Help bar
-        active_view = @job_detail.active? ? @job_detail : current_view
-        Components::HelpBar.new(
-          @tui,
-          breadcrumb: active_view.breadcrumb,
-          bindings: active_view.bindings,
-          status: status_message
-        ).render(frame, help_area)
+        # Help bar or command input
+        if @command_mode
+          render_command_bar(frame, help_area)
+        else
+          active_view = @job_detail.active? ? @job_detail : current_view
+          Components::HelpBar.new(
+            @tui,
+            breadcrumb: active_view.breadcrumb,
+            bindings: active_view.bindings,
+            status: status_message
+          ).render(frame, help_area)
+        end
       end
     end
 
@@ -116,7 +134,7 @@ module SolidQueueTui
       # Help overlay
       if @show_help
         case event
-        in { type: :key, code: "escape" } | { type: :key, code: "?" } | { type: :key, code: "q" }
+        in { type: :key, code: "esc" } | { type: :key, code: "?" } | { type: :key, code: "q" }
           @show_help = false
         else
           nil
@@ -131,13 +149,19 @@ module SolidQueueTui
         return false
       end
 
+      # Command mode input
+      if @command_mode
+        handle_command_input(event)
+        return false
+      end
+
       # Global keybindings
       case event
       in { type: :key, code: "q" }
         return true
       in { type: :key, code: "c", modifiers: ["ctrl"] }
         return true
-      in { type: :key, code: "escape" }
+      in { type: :key, code: "esc" }
         switch_view(VIEW_DASHBOARD) if @current_view != VIEW_DASHBOARD
         return false
       in { type: :key, code: "r" }
@@ -175,6 +199,11 @@ module SolidQueueTui
         return false
       in { type: :key, code: "enter" }
         open_detail
+        return false
+      in { type: :key, code: ":" }
+        @command_mode = true
+        @command_input = ""
+        @command_error = nil
         return false
       else
         nil
@@ -263,6 +292,91 @@ module SolidQueueTui
       end
     end
 
+    def handle_command_input(event)
+      case event
+      in { type: :key, code: "enter" }
+        execute_command(@command_input.strip)
+        @command_mode = false
+        @command_input = ""
+      in { type: :key, code: "esc" }
+        @command_mode = false
+        @command_input = ""
+        @command_error = nil
+      in { type: :key, code: "tab" }
+        autocomplete_command
+      in { type: :key, code: "backspace" }
+        @command_input = @command_input[0...-1]
+      in { type: :key, code: /\A.\z/ => char }
+        @command_input += char
+      else
+        nil
+      end
+    end
+
+    def autocomplete_command
+      input = @command_input.strip
+      commands = COMMAND_MAP.keys
+
+      if input.empty?
+        @command_input = commands.first
+        return
+      end
+
+      matches = commands.select { |cmd| cmd.start_with?(input) }
+      return if matches.empty?
+
+      if matches.size == 1
+        @command_input = matches.first
+      elsif @command_input == matches.first
+        # Already on first match, cycle to next
+        idx = matches.index(@command_input) || 0
+        @command_input = matches[(idx + 1) % matches.size]
+      else
+        # Complete to first match
+        @command_input = matches.first
+      end
+    end
+
+    def execute_command(input)
+      return if input.empty?
+
+      # Exact match first
+      if COMMAND_MAP.key?(input)
+        switch_view(COMMAND_MAP[input])
+        return
+      end
+
+      # Prefix match
+      matches = COMMAND_MAP.keys.select { |cmd| cmd.start_with?(input) }
+      if matches.size == 1
+        switch_view(COMMAND_MAP[matches.first])
+      end
+    end
+
+    def render_command_bar(frame, area)
+      # Show completions as hint
+      input = @command_input.strip
+      hint = if input.empty?
+               COMMAND_MAP.keys.uniq { |k| COMMAND_MAP[k] }.join("  ")
+             else
+               matches = COMMAND_MAP.keys.select { |cmd| cmd.start_with?(input) }
+               matches.empty? ? "no match" : matches.join("  ")
+             end
+
+      frame.render_widget(
+        @tui.paragraph(
+          text: @tui.text_line(spans: [
+            @tui.text_span(content: ":", style: @tui.style(fg: :cyan, modifiers: [:bold])),
+            @tui.text_span(content: @command_input, style: @tui.style(fg: :white)),
+            @tui.text_span(content: "\u2588", style: @tui.style(fg: :white)),
+            @tui.text_span(content: "  #{hint}", style: @tui.style(fg: :dark_gray))
+          ]),
+          style: @tui.style(fg: :white)
+        ),
+        area
+      )
+    end
+
     def status_message
       elapsed = (Time.now - @last_refresh).to_i
       "Last refresh: #{elapsed}s ago"
@@ -277,6 +391,7 @@ module SolidQueueTui
         help_section("Navigation"),
         help_line("1-8", "Switch between views"),
         help_line("Tab", "Next view"),
+        help_line(":", "Command mode (:queues, :failed, ...)"),
         help_line("Esc", "Back to Dashboard"),
         help_line("j / Up", "Move selection up"),
         help_line("k / Down", "Move selection down"),
