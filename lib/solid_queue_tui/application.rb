@@ -20,7 +20,6 @@ module SolidQueueTui
       "dashboard"   => VIEW_DASHBOARD,
       "queues"      => VIEW_QUEUES,
       "failed"      => VIEW_FAILED,
-      "in_progress" => VIEW_IN_PROGRESS,
       "inprogress"  => VIEW_IN_PROGRESS,
       "blocked"     => VIEW_BLOCKED,
       "scheduled"   => VIEW_SCHEDULED,
@@ -303,12 +302,38 @@ module SolidQueueTui
         @command_mode = false
         @command_input = ""
         @command_error = nil
+      in { type: :key, code: "tab" }
+        autocomplete_command
       in { type: :key, code: "backspace" }
         @command_input = @command_input[0...-1]
       in { type: :key, code: /\A.\z/ => char }
         @command_input += char
       else
         nil
+      end
+    end
+
+    def autocomplete_command
+      input = @command_input.strip
+      commands = COMMAND_MAP.keys
+
+      if input.empty?
+        @command_input = commands.first
+        return
+      end
+
+      matches = commands.select { |cmd| cmd.start_with?(input) }
+      return if matches.empty?
+
+      if matches.size == 1
+        @command_input = matches.first
+      elsif @command_input == matches.first
+        # Already on first match, cycle to next
+        idx = matches.index(@command_input) || 0
+        @command_input = matches[(idx + 1) % matches.size]
+      else
+        # Complete to first match
+        @command_input = matches.first
       end
     end
 
