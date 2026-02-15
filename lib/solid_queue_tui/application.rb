@@ -152,7 +152,7 @@ module SolidQueueTui
       # Command mode input
       if @command_mode
         handle_command_input(event)
-        return false
+        return @quit || false
       end
 
       # Global keybindings
@@ -339,6 +339,11 @@ module SolidQueueTui
 
     def execute_command(input)
       return if input.empty?
+
+      if %w[quit exit].include?(input)
+        @quit = true
+        return
+      end
 
       # Exact match first
       if COMMAND_MAP.key?(input)
