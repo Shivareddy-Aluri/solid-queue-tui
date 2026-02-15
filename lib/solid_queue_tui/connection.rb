@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "active_record"
+require "erb"
+require "yaml"
 
 module SolidQueueTui
   class Connection
@@ -11,8 +13,11 @@ module SolidQueueTui
         ActiveRecord::Base.establish_connection(parse_url(url))
       elsif defined?(Rails) && Rails.application
         config = Rails.application.config.database_configuration
-        queue_config = config["queue"] || config[Rails.env]
+        env_config = config[Rails.env]
+        queue_config = env_config.is_a?(Hash) && env_config["queue"] ? env_config["queue"] : env_config
         ActiveRecord::Base.establish_connection(queue_config)
+      elsif (db_config = detect_rails_database_config)
+        ActiveRecord::Base.establish_connection(db_config)
       else
         raise ConnectionError, <<~MSG
           No database connection configured.
@@ -25,6 +30,30 @@ module SolidQueueTui
       end
 
       verify_solid_queue_tables!
+    end
+
+    # Detect database config from a Rails database.yml without booting Rails.
+    def self.detect_rails_database_config
+      db_yml = File.join(Dir.pwd, "config", "database.yml")
+      return nil unless File.exist?(db_yml)
+
+      raw = ERB.new(File.read(db_yml)).result
+      config = YAML.safe_load(raw, permitted_classes: [Symbol], aliases: true)
+      env = ENV.fetch("RAILS_ENV", "development")
+      env_config = config[env]
+
+      return nil unless env_config.is_a?(Hash)
+
+      # Multi-database setup: prefer the "queue" sub-config
+      if env_config["queue"].is_a?(Hash)
+        env_config["queue"]
+      elsif env_config["primary"].is_a?(Hash)
+        # Multi-db but no queue db — use primary
+        env_config["primary"]
+      else
+        # Single database setup
+        env_config
+      end
     end
 
     # Parse a database URL into a connection hash.
