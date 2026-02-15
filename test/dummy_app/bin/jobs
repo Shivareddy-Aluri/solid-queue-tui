@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Start Solid Queue workers.
+#
+# Usage:
+#   bin/jobs              # start in foreground
+#   bin/jobs &            # start in background
+
+APP_ROOT = File.expand_path("..", __dir__)
+
+Dir.chdir(APP_ROOT) do
+  exec "bundle", "exec", "rake", "solid_queue:start"
+end

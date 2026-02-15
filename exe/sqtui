@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "solid_queue_tui"
+
+SolidQueueTui::CLI.run(ARGV)

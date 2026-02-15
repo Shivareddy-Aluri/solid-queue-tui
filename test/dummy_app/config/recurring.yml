@@ -1,0 +1,13 @@
+cleanup_old_records:
+  class: ScheduledCleanupJob
+  queue: low_priority
+  schedule: every hour
+  args:
+    - 30
+
+warm_homepage_cache:
+  class: WarmCacheJob
+  queue: low_priority
+  schedule: every 15 minutes
+  args:
+    - "homepage:main"

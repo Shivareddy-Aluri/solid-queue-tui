@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+require "fileutils"
+
+APP_ROOT = File.expand_path("..", __dir__)
+
+def system!(*args)
+  system(*args, exception: true)
+end
+
+FileUtils.chdir APP_ROOT do
+  puts "== Installing dependencies =="
+  system("bundle check") || system!("bundle install")
+
+  puts "\n== Creating databases =="
+  system! "bin/rails db:prepare"
+
+  puts "\n== Loading queue database schema =="
+  system! "bin/rails db:schema:load:queue"
+
+  puts "\n== Seeding jobs =="
+  system! "bin/rails db:seed"
+
+  puts "\n== Removing old logs =="
+  system! "bin/rails log:clear tmp:clear"
+
+  puts ""
+  puts "=" * 60
+  puts "  Setup complete!"
+  puts ""
+  puts "  The queue database has been seeded with:"
+  puts "    - 120 completed historical jobs"
+  puts "    - 8 failed jobs with error details"
+  puts "    - 84 ready jobs across 5 queues"
+  puts "    - 15 scheduled future jobs"
+  puts "    - 12 concurrency-limited jobs"
+  puts ""
+  puts "  To use:"
+  puts ""
+  puts "    1. Start Solid Queue workers (Terminal 1):"
+  puts "       cd test/dummy_app && bin/jobs"
+  puts ""
+  puts "    2. Launch the TUI dashboard (Terminal 2):"
+  puts "       cd test/dummy_app && bin/tui"
+  puts ""
+  puts "    3. Enqueue more jobs while running (Terminal 3):"
+  puts "       cd test/dummy_app && bin/seed_jobs --loop"
+  puts ""
+  puts "=" * 60
+end
