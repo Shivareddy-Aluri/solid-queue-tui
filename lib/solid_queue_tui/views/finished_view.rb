@@ -92,7 +92,7 @@ module SolidQueueTui
         in { type: :key, code: "/" }
           @filter_mode = true
           @filter_input = @filter || ""
-        in { type: :key, code: "escape" }
+        in { type: :key, code: "esc" }
           @filter = nil
           @filter_input = ""
           :refresh
@@ -109,7 +109,7 @@ module SolidQueueTui
           @selected_row = 0
           @table_state.select(0)
           :refresh
-        in { type: :key, code: "escape" }
+        in { type: :key, code: "esc" }
           @filter_mode = false
           @filter_input = @filter || ""
           nil

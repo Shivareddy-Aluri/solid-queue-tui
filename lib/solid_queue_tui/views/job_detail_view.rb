@@ -42,7 +42,7 @@ module SolidQueueTui
 
       def handle_input(event)
         case event
-        in { type: :key, code: "escape" } | { type: :key, code: "q" }
+        in { type: :key, code: "esc" } | { type: :key, code: "q" }
           hide
           nil
         in { type: :key, code: "j" } | { type: :key, code: "up" }
