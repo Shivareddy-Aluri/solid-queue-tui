@@ -4,11 +4,7 @@
 
 A terminal UI dashboard for [Solid Queue](https://github.com/rails/solid_queue), built with [ratatui_ruby](https://www.ratatui-ruby.dev/). Monitor and manage your Solid Queue jobs without leaving the terminal.
 
-![Dashboard](screenshots/dashboard.png)
-![Queues](screenshots/queues.png)
-![Failed Jobs](screenshots/failed.png)
-![Failed Job Details](screenshots/failed_job_details.png)
-![Finished](screenshots/finished.png)
+![Solid Queue TUI Demo](screenshots/demo.gif)
 
 ## Installation
 
@@ -26,15 +22,17 @@ bundle install
 
 ## Usage
 
+Create `config/solid_tui.yml` in your Rails app:
+
+```yaml
+database_url: postgres://localhost/myapp_queue
+refresh: 2
+```
+
+Then run:
+
 ```bash
-# Inside your Rails app directory
 bundle exec sqtui
-
-# Or with a database URL
-sqtui --database-url postgres://localhost/myapp_queue
-
-# SQLite
-sqtui --database-url sqlite3:db/queue.sqlite3
 ```
 
 ## Views
