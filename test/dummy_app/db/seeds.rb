@@ -6,6 +6,7 @@
 #   Phase 2: Active Job enqueues for fresh jobs that workers can process live.
 #
 # Run with: bin/rails db:seed
+# Re-runnable: clears existing data before seeding.
 
 require "securerandom"
 require "json"
@@ -15,6 +16,24 @@ puts ""
 
 now = Time.now.utc
 conn = SolidQueue::Record.connection
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Reset existing data (makes this script re-runnable)
+# ═══════════════════════════════════════════════════════════════════════════
+
+puts "  Clearing existing data..."
+%w[
+  solid_queue_blocked_executions
+  solid_queue_claimed_executions
+  solid_queue_failed_executions
+  solid_queue_ready_executions
+  solid_queue_scheduled_executions
+  solid_queue_recurring_executions
+  solid_queue_processes
+  solid_queue_semaphores
+  solid_queue_pauses
+  solid_queue_jobs
+].each { |t| conn.execute("DELETE FROM #{t}") }
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Phase 1: Direct inserts for historical data
@@ -173,6 +192,7 @@ puts "  Fresh jobs (need workers to process):"
 puts "    84 ready + 15 scheduled + 12 concurrency-limited"
 puts ""
 puts "  Next steps:"
-puts "    1. Start workers:  bin/jobs"
-puts "    2. Launch TUI:     bin/tui"
+puts "    1. Start workers:     bin/jobs"
+puts "    2. Launch TUI:        bundle exec sqtui"
+puts "    3. Create jobs:       bin/rails console"
 puts "  ─────────────────────────────────────────────────────────"
