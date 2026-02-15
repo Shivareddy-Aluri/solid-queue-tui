@@ -19,25 +19,15 @@ module SolidQueueTui
 
       def render(frame, area)
         columns = [
-          { key: :name,      label: "QUEUE",        width: :fill },
-          { key: :ready,     label: "READY",        width: 8, color: :green },
-          { key: :claimed,   label: "IN PROGRESS",  width: 12, color: :yellow },
-          { key: :scheduled, label: "SCHEDULED",    width: 10, color: :blue },
-          { key: :blocked,   label: "BLOCKED",      width: 9, color: :magenta },
-          { key: :failed,    label: "FAILED",       width: 8, color: :red },
-          { key: :total,     label: "TOTAL",        width: 8 },
-          { key: :status,    label: "STATUS",       width: 8, color_by: :status }
+          { key: :name,   label: "QUEUE",   width: :fill },
+          { key: :size,   label: "SIZE",    width: 10 },
+          { key: :status, label: "STATUS",  width: 10, color_by: :status }
         ]
 
         rows = @queues.map do |q|
           {
             name: q.name,
-            ready: q.ready,
-            claimed: q.claimed,
-            scheduled: q.scheduled,
-            blocked: q.blocked,
-            failed: q.failed,
-            total: q.total,
+            size: q.size,
             status: q.paused ? "paused" : "active"
           }
         end

@@ -22,10 +22,9 @@ module SolidQueueTui
         { key: "8", label: "Workers" }
       ].freeze
 
-      def initialize(tui, current_view:, database_info: nil)
+      def initialize(tui, current_view:)
         @tui = tui
         @current_view = current_view
-        @database_info = database_info || "not connected"
       end
 
       def render(frame, area)
@@ -52,9 +51,7 @@ module SolidQueueTui
         end
 
         lines << @tui.text_line(spans: [
-          @tui.text_span(content: " v#{VERSION}", style: @tui.style(fg: :dark_gray)),
-          @tui.text_span(content: "  DB: ", style: @tui.style(fg: :dark_gray)),
-          @tui.text_span(content: truncate(@database_info, 40), style: @tui.style(fg: :magenta))
+          @tui.text_span(content: " v#{VERSION}", style: @tui.style(fg: :dark_gray))
         ])
 
         frame.render_widget(
@@ -103,9 +100,6 @@ module SolidQueueTui
         )
       end
 
-      def truncate(str, max)
-        str.length > max ? "#{str[0...max - 3]}..." : str
-      end
     end
   end
 end

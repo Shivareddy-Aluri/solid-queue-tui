@@ -19,12 +19,12 @@ module SolidQueueTui
 
       def render(frame, area)
         columns = [
-          { key: :id,         label: "ID",       width: 8 },
-          { key: :queue_name, label: "QUEUE",     width: 14 },
-          { key: :class_name, label: "CLASS",     width: :fill },
-          { key: :priority,   label: "PRI",       width: 5 },
-          { key: :status,     label: "STATUS",    width: 12, color_by: :status },
-          { key: :age,        label: "AGE",       width: 12 }
+          { key: :id,         label: "ID",        width: 8 },
+          { key: :queue_name, label: "QUEUE",      width: 14 },
+          { key: :class_name, label: "CLASS",      width: :fill },
+          { key: :priority,   label: "PRI",        width: 5 },
+          { key: :worker_id,  label: "WORKER",     width: 8 },
+          { key: :started_at, label: "STARTED",    width: 12 }
         ]
 
         rows = @jobs.map do |job|
@@ -33,8 +33,8 @@ module SolidQueueTui
             queue_name: job.queue_name,
             class_name: job.class_name,
             priority: job.priority,
-            status: job.status,
-            age: time_ago(job.created_at)
+            worker_id: job.worker_id || "n/a",
+            started_at: time_ago(job.started_at)
           }
         end
 

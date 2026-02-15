@@ -35,7 +35,7 @@ module SolidQueueTui
         rows = conn.select_all(
           "SELECT id, kind, pid, hostname, name, last_heartbeat_at, " \
           "supervisor_id, metadata, created_at " \
-          "FROM solid_queue_processes ORDER BY kind, id"
+          "FROM solid_queue_processes WHERE kind = 'Worker' ORDER BY id"
         )
 
         rows.map do |row|
