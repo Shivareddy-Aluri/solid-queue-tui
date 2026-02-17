@@ -3,12 +3,17 @@
 module SolidQueueTui
   module Views
     class FailedView
+      PAGE_SIZE = 100
+      LOAD_THRESHOLD = 10
+
       def initialize(tui)
         @tui = tui
         @table_state = RatatuiRuby::TableState.new(nil)
         @table_state.select(0)
         @selected_row = 0
         @failed_jobs = []
+        @total_count = nil
+        @all_loaded = false
         @filter = nil
         @filter_mode = false
         @filter_input = ""
@@ -17,8 +22,30 @@ module SolidQueueTui
 
       def update(failed_jobs:)
         @failed_jobs = failed_jobs
+        @all_loaded = failed_jobs.size < PAGE_SIZE
         @selected_row = @selected_row.clamp(0, [@failed_jobs.size - 1, 0].max)
         @table_state.select(@selected_row)
+      end
+
+      def append(failed_jobs:)
+        @failed_jobs.concat(failed_jobs)
+        @all_loaded = failed_jobs.size < PAGE_SIZE
+      end
+
+      def total_count=(count)
+        @total_count = count
+      end
+
+      def current_offset
+        @failed_jobs.size
+      end
+
+      def reset_pagination!
+        @failed_jobs = []
+        @total_count = nil
+        @all_loaded = false
+        @selected_row = 0
+        @table_state.select(0)
       end
 
       def render(frame, area)
@@ -99,12 +126,18 @@ module SolidQueueTui
 
       private
 
+      def needs_more?
+        !@all_loaded && @selected_row >= @failed_jobs.size - LOAD_THRESHOLD
+      end
+
       def handle_normal_input(event)
         case event
         in { type: :key, code: "j" } | { type: :key, code: "up" }
           move_selection(-1)
         in { type: :key, code: "k" } | { type: :key, code: "down" }
-          move_selection(1)
+          result = move_selection(1)
+          return :load_more if result == :load_more
+          nil
         in { type: :key, code: "g" }
           jump_to_top
         in { type: :key, code: "G" }
@@ -185,6 +218,7 @@ module SolidQueueTui
         return if @failed_jobs.empty?
         @selected_row = (@selected_row + delta).clamp(0, @failed_jobs.size - 1)
         @table_state.select(@selected_row)
+        :load_more if needs_more?
       end
 
       def jump_to_top
@@ -196,6 +230,7 @@ module SolidQueueTui
         return if @failed_jobs.empty?
         @selected_row = @failed_jobs.size - 1
         @table_state.select(@selected_row)
+        return :load_more if needs_more?
       end
 
       def render_failed_table(frame, area)
@@ -227,6 +262,7 @@ module SolidQueueTui
           columns: columns,
           rows: rows,
           selected_row: @selected_row,
+          total_count: @total_count,
           empty_message: "No failed jobs — everything is running smoothly!"
         )
 
@@ -264,7 +300,7 @@ module SolidQueueTui
       def render_filter_input(frame, area)
         frame.render_widget(
           @tui.paragraph(
-            text: @filter_input + "█",
+            text: @filter_input + "\u2588",
             style: @tui.style(fg: :white),
             block: @tui.block(
               title: " Filter by class name ",

@@ -11,23 +11,35 @@ module SolidQueueTui
         keyword_init: true
       )
 
-      def self.fetch(status:, filter: nil, queue: nil, limit: 200)
+      def self.fetch(status:, filter: nil, queue: nil, limit: 100, offset: 0)
         case status
-        when "claimed"   then fetch_claimed(filter: filter, queue: queue, limit: limit)
-        when "blocked"   then fetch_blocked(filter: filter, queue: queue, limit: limit)
-        when "scheduled" then fetch_scheduled(filter: filter, queue: queue, limit: limit)
-        when "completed" then fetch_finished(filter: filter, queue: queue, limit: limit)
+        when "claimed"   then fetch_claimed(filter: filter, queue: queue, limit: limit, offset: offset)
+        when "blocked"   then fetch_blocked(filter: filter, queue: queue, limit: limit, offset: offset)
+        when "scheduled" then fetch_scheduled(filter: filter, queue: queue, limit: limit, offset: offset)
+        when "completed" then fetch_finished(filter: filter, queue: queue, limit: limit, offset: offset)
         else []
         end
       rescue => e
         []
       end
 
-      def self.fetch_claimed(filter: nil, queue: nil, limit: 200)
+      def self.count(status:, filter: nil, queue: nil)
+        case status
+        when "claimed"   then count_scope(SolidQueue::ClaimedExecution.joins(:job), filter: filter, queue: queue)
+        when "blocked"   then count_scope(SolidQueue::BlockedExecution.joins(:job), filter: filter, queue: queue)
+        when "scheduled" then count_scope(SolidQueue::ScheduledExecution.joins(:job), filter: filter, queue: queue)
+        when "completed" then count_finished(filter: filter, queue: queue)
+        else 0
+        end
+      rescue => e
+        0
+      end
+
+      def self.fetch_claimed(filter: nil, queue: nil, limit: 100, offset: 0)
         scope = SolidQueue::ClaimedExecution.joins(:job)
         scope = scope.merge(SolidQueue::Job.where(queue_name: queue)) if queue
         scope = apply_class_name_filter(scope, filter)
-        scope = scope.order(job_id: :asc).limit(limit)
+        scope = scope.order(job_id: :asc).offset(offset).limit(limit)
 
         scope.includes(:job).map do |ce|
           job = ce.job
@@ -46,11 +58,11 @@ module SolidQueueTui
         end
       end
 
-      def self.fetch_blocked(filter: nil, queue: nil, limit: 200)
+      def self.fetch_blocked(filter: nil, queue: nil, limit: 100, offset: 0)
         scope = SolidQueue::BlockedExecution.joins(:job)
         scope = scope.merge(SolidQueue::Job.where(queue_name: queue)) if queue
         scope = apply_class_name_filter(scope, filter)
-        scope = scope.order(job_id: :asc).limit(limit)
+        scope = scope.order(job_id: :asc).offset(offset).limit(limit)
 
         scope.includes(:job).map do |be|
           job = be.job
@@ -68,11 +80,11 @@ module SolidQueueTui
         end
       end
 
-      def self.fetch_scheduled(filter: nil, queue: nil, limit: 200)
+      def self.fetch_scheduled(filter: nil, queue: nil, limit: 100, offset: 0)
         scope = SolidQueue::ScheduledExecution.joins(:job)
         scope = scope.merge(SolidQueue::Job.where(queue_name: queue)) if queue
         scope = apply_class_name_filter(scope, filter)
-        scope = scope.order(scheduled_at: :asc, priority: :asc).limit(limit)
+        scope = scope.order(scheduled_at: :asc, priority: :asc).offset(offset).limit(limit)
 
         scope.includes(:job).map do |se|
           job = se.job
@@ -90,11 +102,11 @@ module SolidQueueTui
         end
       end
 
-      def self.fetch_finished(filter: nil, queue: nil, limit: 200)
+      def self.fetch_finished(filter: nil, queue: nil, limit: 100, offset: 0)
         scope = SolidQueue::Job.finished
         scope = scope.where(queue_name: queue) if queue
         scope = scope.where("class_name LIKE ?", "%#{filter}%") if filter.present?
-        scope = scope.order(finished_at: :desc).limit(limit)
+        scope = scope.order(finished_at: :desc).offset(offset).limit(limit)
 
         scope.map do |job|
           Job.new(
@@ -114,6 +126,19 @@ module SolidQueueTui
       private_class_method def self.apply_class_name_filter(scope, filter)
         return scope if filter.blank?
         scope.merge(SolidQueue::Job.where("class_name LIKE ?", "%#{filter}%"))
+      end
+
+      private_class_method def self.count_scope(scope, filter: nil, queue: nil)
+        scope = scope.merge(SolidQueue::Job.where(queue_name: queue)) if queue
+        scope = apply_class_name_filter(scope, filter)
+        scope.count
+      end
+
+      private_class_method def self.count_finished(filter: nil, queue: nil)
+        scope = SolidQueue::Job.finished
+        scope = scope.where(queue_name: queue) if queue
+        scope = scope.where("class_name LIKE ?", "%#{filter}%") if filter.present?
+        scope.count
       end
     end
   end

@@ -10,16 +10,26 @@ module SolidQueueTui
         keyword_init: true
       )
 
-      def self.fetch(filter: nil, limit: 200)
+      def self.fetch(filter: nil, limit: 100, offset: 0)
         scope = SolidQueue::FailedExecution.joins(:job).includes(:job)
         if filter.present?
           scope = scope.merge(SolidQueue::Job.where("class_name LIKE ?", "%#{filter}%"))
         end
-        scope = scope.order(created_at: :desc).limit(limit)
+        scope = scope.order(created_at: :desc).offset(offset).limit(limit)
 
         scope.map { |fe| build_failed_job(fe) }
       rescue => e
         []
+      end
+
+      def self.count(filter: nil)
+        scope = SolidQueue::FailedExecution.joins(:job)
+        if filter.present?
+          scope = scope.merge(SolidQueue::Job.where("class_name LIKE ?", "%#{filter}%"))
+        end
+        scope.count
+      rescue => e
+        0
       end
 
       def self.fetch_one(id)
