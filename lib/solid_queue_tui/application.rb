@@ -423,7 +423,8 @@ module SolidQueueTui
         help_section("General"),
         help_line("?", "Toggle this help"),
         help_line("q", "Quit"),
-        help_line("Ctrl+C", "Force quit")
+        help_line("Ctrl+C", "Force quit"),
+        help_line("fn + select", "Select Text")
       ]
 
       frame.render_widget(

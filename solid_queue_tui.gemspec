@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.summary = "A K9s-inspired terminal UI for Solid Queue"
   spec.description = "Real-time terminal dashboard to monitor and manage Solid Queue jobs. " \
                      "Built with ratatui_ruby for native Rust rendering performance."
-  spec.homepage = "https://github.com/shivareddyaluri/solid-queue-tui"
+  spec.homepage = "https://github.com/shivareddy-Aluri/solid-queue-tui"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 

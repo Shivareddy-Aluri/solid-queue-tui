@@ -1,0 +1,5 @@
+*.gem
+.DS_Store
+.idea/
+test/dummy_app/storage/*.sqlite3
+test/dummy_app/storage/*.sqlite3-*
