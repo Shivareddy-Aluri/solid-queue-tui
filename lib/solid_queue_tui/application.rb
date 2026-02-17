@@ -39,8 +39,7 @@ module SolidQueueTui
     end
 
     def run
-      config = Connection.establish!
-      @refresh_interval = config.fetch("refresh", 2).to_i
+      @refresh_interval = SolidQueueTui.refresh_interval
       setup_dev_reloader! if @dev
 
       RatatuiRuby.run do |tui|

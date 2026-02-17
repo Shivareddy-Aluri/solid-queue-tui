@@ -20,18 +20,16 @@ module SolidQueueTui
       end
 
       def self.fetch
-        conn = ActiveRecord::Base.connection
-
         new(
-          ready: count_table(conn, "solid_queue_ready_executions"),
-          claimed: count_table(conn, "solid_queue_claimed_executions"),
-          failed: count_table(conn, "solid_queue_failed_executions"),
-          scheduled: count_table(conn, "solid_queue_scheduled_executions"),
-          blocked: count_table(conn, "solid_queue_blocked_executions"),
-          total_jobs: count_table(conn, "solid_queue_jobs"),
-          completed_jobs: count_where(conn, "solid_queue_jobs", "finished_at IS NOT NULL"),
-          process_count: count_table(conn, "solid_queue_processes"),
-          processes_by_kind: processes_by_kind(conn)
+          ready: SolidQueue::ReadyExecution.count,
+          claimed: SolidQueue::ClaimedExecution.count,
+          failed: SolidQueue::FailedExecution.count,
+          scheduled: SolidQueue::ScheduledExecution.count,
+          blocked: SolidQueue::BlockedExecution.count,
+          total_jobs: SolidQueue::Job.count,
+          completed_jobs: SolidQueue::Job.finished.count,
+          process_count: SolidQueue::Process.count,
+          processes_by_kind: SolidQueue::Process.group(:kind).count
         )
       rescue => e
         empty(error: e.message)
@@ -44,22 +42,6 @@ module SolidQueueTui
           processes_by_kind: {}
         )
       end
-
-      private_class_method def self.count_table(conn, table)
-        conn.select_value("SELECT COUNT(*) FROM #{table}").to_i
-      end
-
-      private_class_method def self.count_where(conn, table, condition)
-        conn.select_value("SELECT COUNT(*) FROM #{table} WHERE #{condition}").to_i
-      end
-
-      private_class_method def self.processes_by_kind(conn)
-        rows = conn.select_rows(
-          "SELECT kind, COUNT(*) FROM solid_queue_processes GROUP BY kind"
-        )
-        rows.to_h { |kind, count| [kind, count.to_i] }
-      end
-
     end
   end
 end

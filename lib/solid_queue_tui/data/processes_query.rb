@@ -30,45 +30,21 @@ module SolidQueueTui
       end
 
       def self.fetch
-        conn = ActiveRecord::Base.connection
-
-        rows = conn.select_all(
-          "SELECT id, kind, pid, hostname, name, last_heartbeat_at, " \
-          "supervisor_id, metadata, created_at " \
-          "FROM solid_queue_processes WHERE kind = 'Worker' ORDER BY id"
-        )
-
-        rows.map do |row|
-          metadata = parse_json(row["metadata"])
-
+        SolidQueue::Process.where(kind: "Worker").order(:id).map do |proc|
           Process.new(
-            id: row["id"].to_i,
-            kind: row["kind"],
-            pid: row["pid"].to_i,
-            hostname: row["hostname"],
-            name: row["name"],
-            last_heartbeat_at: parse_time(row["last_heartbeat_at"]),
-            supervisor_id: row["supervisor_id"]&.to_i,
-            metadata: metadata,
-            created_at: parse_time(row["created_at"])
+            id: proc.id,
+            kind: proc.kind,
+            pid: proc.pid,
+            hostname: proc.hostname,
+            name: proc.name,
+            last_heartbeat_at: proc.last_heartbeat_at,
+            supervisor_id: proc.supervisor_id,
+            metadata: proc.metadata,
+            created_at: proc.created_at
           )
         end
       rescue => e
         []
-      end
-
-      private_class_method def self.parse_json(value)
-        return {} if value.nil?
-        value.is_a?(Hash) ? value : JSON.parse(value.to_s)
-      rescue JSON::ParserError
-        {}
-      end
-
-      private_class_method def self.parse_time(value)
-        return nil if value.nil?
-        value.is_a?(Time) ? value : Time.parse(value.to_s)
-      rescue
-        nil
       end
     end
   end

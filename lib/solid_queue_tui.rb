@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
-require "json"
-require "time"
-
 require_relative "solid_queue_tui/version"
-require_relative "solid_queue_tui/connection"
 
 # Data layer
 require_relative "solid_queue_tui/data/stats"
@@ -43,4 +39,11 @@ require_relative "solid_queue_tui/application"
 require_relative "solid_queue_tui/cli"
 
 module SolidQueueTui
+  @refresh_interval = 2
+
+  class << self
+    attr_accessor :refresh_interval
+  end
 end
+
+require_relative "solid_queue_tui/railtie" if defined?(Rails::Railtie)

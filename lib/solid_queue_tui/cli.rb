@@ -7,9 +7,6 @@ module SolidQueueTui
     def self.run(args)
       options = parse_options(args)
       Application.new(**options).run
-    rescue Connection::ConnectionError => e
-      $stderr.puts "Connection error: #{e.message}"
-      exit 1
     rescue Interrupt
       exit 0
     end
@@ -34,10 +31,8 @@ module SolidQueueTui
         opts.on("-h", "--help", "Show this help") do
           puts opts
           puts ""
-          puts "Configuration:"
-          puts "  Create config/solid_tui.yml with:"
-          puts "    database_url: sqlite3:storage/queue.sqlite3"
-          puts "    refresh: 2"
+          puts "Run from your Rails app root directory."
+          puts "Requires solid_queue_tui in your Gemfile and Solid Queue configured."
           exit
         end
       end.parse!(args)

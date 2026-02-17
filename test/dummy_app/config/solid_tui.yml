@@ -1,2 +1,0 @@
-database_url: "sqlite3:storage/queue.sqlite3"
-refresh: 2
