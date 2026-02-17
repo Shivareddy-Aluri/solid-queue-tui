@@ -263,7 +263,8 @@ module SolidQueueTui
         jobs = Data::JobsQuery.fetch(status: "blocked")
         current_view.update(jobs: jobs)
       when VIEW_SCHEDULED
-        jobs = Data::JobsQuery.fetch(status: "scheduled")
+        filter = current_view.filter
+        jobs = Data::JobsQuery.fetch(status: "scheduled", filter: filter)
         current_view.update(jobs: jobs)
       when VIEW_FINISHED
         filter = current_view.respond_to?(:filter) ? current_view.filter : nil
