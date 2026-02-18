@@ -195,6 +195,9 @@ module SolidQueueTui
       in { type: :key, code: "tab" }
         switch_view((@current_view + 1) % VIEW_COUNT)
         return false
+      in { type: :key, code: "back_tab" }
+        switch_view((@current_view - 1) % VIEW_COUNT)
+        return false
       in { type: :key, code: "enter" }
         open_detail
         return false
@@ -436,6 +439,7 @@ module SolidQueueTui
         help_section("Navigation"),
         help_line("1-8", "Switch between views"),
         help_line("Tab", "Next view"),
+        help_line("Shift + Tab", "Previous View"),
         help_line(":", "Command mode (:queues, :failed, ...)"),
         help_line("Esc", "Back to Dashboard"),
         help_line("j / Up", "Move selection up"),

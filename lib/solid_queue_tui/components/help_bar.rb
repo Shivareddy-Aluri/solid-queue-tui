@@ -7,6 +7,7 @@ module SolidQueueTui
         { key: "q", action: "Quit" },
         { key: "r", action: "Refresh" },
         { key: "Tab", action: "Next View" },
+        { Key: "Shift + Tab", action: "Previous View"},
         { key: "j/k", action: "Navigate" },
         { key: "/", action: "Filter" },
         { key: "Esc", action: "Clear" }

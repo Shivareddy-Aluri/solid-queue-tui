@@ -36,7 +36,8 @@ module SolidQueueTui
 
       def bindings
         [
-          { key: "Tab", action: "Next View" }
+          { key: "Tab", action: "Next View" },
+          { key: "Shift Tab", action: "Prev View" },
         ]
       end
 
