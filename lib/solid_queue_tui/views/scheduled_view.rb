@@ -204,16 +204,20 @@ module SolidQueueTui
           { key: :queue_name,   label: "QUEUE",        width: 14 },
           { key: :priority,     label: "PRI",          width: 5 },
           { key: :scheduled_at, label: "SCHEDULED AT", width: 20 },
+          { key: :status,       label: "STATUS",       width: 10, color_by: :status },
           { key: :created_at,   label: "CREATED",      width: 12 }
         ]
 
+        now = Time.now.utc
         rows = @jobs.map do |job|
+          delayed = job.scheduled_at && job.scheduled_at < now
           {
             id: job.id,
             class_name: job.class_name,
             queue_name: job.queue_name,
             priority: job.priority,
             scheduled_at: format_time(job.scheduled_at),
+            status: delayed ? "DELAYED" : "pending",
             created_at: time_ago(job.created_at)
           }
         end

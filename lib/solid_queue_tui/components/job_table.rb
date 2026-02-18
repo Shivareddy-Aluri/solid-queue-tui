@@ -12,6 +12,8 @@ module SolidQueueTui
         "completed" => :dark_gray,
         "active" => :green,
         "paused" => :red,
+        "delayed" => :red,
+        "pending" => :dark_gray,
         "unknown" => :white
       }.freeze
 
