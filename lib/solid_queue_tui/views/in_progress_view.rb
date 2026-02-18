@@ -3,21 +3,149 @@
 module SolidQueueTui
   module Views
     class InProgressView
+      include Filterable
+
+      PAGE_SIZE = 100
+      LOAD_THRESHOLD = 10
+
       def initialize(tui)
         @tui = tui
         @table_state = RatatuiRuby::TableState.new(nil)
         @table_state.select(0)
         @selected_row = 0
         @jobs = []
+        @total_count = nil
+        @all_loaded = false
+        init_filter
       end
 
       def update(jobs:)
         @jobs = jobs
+        @all_loaded = jobs.size < PAGE_SIZE
         @selected_row = @selected_row.clamp(0, [@jobs.size - 1, 0].max)
         @table_state.select(@selected_row)
       end
 
+      def append(jobs:)
+        @jobs.concat(jobs)
+        @all_loaded = jobs.size < PAGE_SIZE
+      end
+
+      def total_count=(count)
+        @total_count = count
+      end
+
+      def current_offset
+        @jobs.size
+      end
+
+      def reset_pagination!
+        @jobs = []
+        @total_count = nil
+        @all_loaded = false
+        @selected_row = 0
+        @table_state.select(0)
+      end
+
       def render(frame, area)
+        if filter_mode?
+          content_area, filter_area = @tui.layout_split(
+            area,
+            direction: :vertical,
+            constraints: [
+              @tui.constraint_fill(1),
+              @tui.constraint_length(3)
+            ]
+          )
+          render_table(frame, content_area)
+          render_filter_input(frame, filter_area)
+        else
+          render_table(frame, area)
+        end
+      end
+
+      def handle_input(event)
+        if filter_mode?
+          handle_filter_input(event)
+        else
+          handle_normal_input(event)
+        end
+      end
+
+      def selected_item
+        return nil if @jobs.empty? || @selected_row >= @jobs.size
+        @jobs[@selected_row]
+      end
+
+      def bindings
+        if filter_mode?
+          filter_bindings
+        else
+          [
+            { key: "j/k", action: "Navigate" },
+            { key: "Enter", action: "Detail" },
+            { key: "/", action: "Filter" },
+            { key: "G/g", action: "Bottom/Top" }
+          ]
+        end
+      end
+
+      def capturing_input?
+        filter_mode?
+      end
+
+      def breadcrumb
+        @filter ? "in-progress:#{@filter}" : "in-progress"
+      end
+
+      private
+
+      def needs_more?
+        !@all_loaded && @selected_row >= @jobs.size - LOAD_THRESHOLD
+      end
+
+      def handle_normal_input(event)
+        case event
+        in { type: :key, code: "j" } | { type: :key, code: "up" }
+          move_selection(-1)
+        in { type: :key, code: "k" } | { type: :key, code: "down" }
+          result = move_selection(1)
+          return :load_more if result == :load_more
+          nil
+        in { type: :key, code: "g" }
+          jump_to_top
+        in { type: :key, code: "G" }
+          jump_to_bottom
+        in { type: :key, code: "/" }
+          enter_filter_mode
+          nil
+        in { type: :key, code: "esc" }
+          clear_filter
+        else
+          nil
+        end
+      end
+
+      def move_selection(delta)
+        return if @jobs.empty?
+        @selected_row = (@selected_row + delta).clamp(0, @jobs.size - 1)
+        @table_state.select(@selected_row)
+        :load_more if needs_more?
+      end
+
+      def jump_to_top
+        @selected_row = 0
+        @table_state.select(0)
+      end
+
+      def jump_to_bottom
+        return if @jobs.empty?
+        @selected_row = @jobs.size - 1
+        @table_state.select(@selected_row)
+        return :load_more if needs_more?
+      end
+
+      def render_table(frame, area)
         columns = [
           { key: :id,         label: "ID",        width: 8 },
           { key: :queue_name, label: "QUEUE",      width: 14 },
@@ -40,63 +168,15 @@ module SolidQueueTui
 
         table = Components::JobTable.new(
           @tui,
-          title: "In Progress",
+          title: filter_title("In Progress"),
           columns: columns,
           rows: rows,
           selected_row: @selected_row,
-          empty_message: "No jobs currently in progress"
+          total_count: @total_count,
+          empty_message: @filter ? "No in-progress jobs matching '#{@filter}'" : "No jobs currently in progress"
         )
 
         table.render(frame, area, @table_state)
-      end
-
-      def handle_input(event)
-        case event
-        in { type: :key, code: "j" } | { type: :key, code: "up" }
-          move_selection(-1)
-        in { type: :key, code: "k" } | { type: :key, code: "down" }
-          move_selection(1)
-        in { type: :key, code: "g" }
-          jump_to_top
-        in { type: :key, code: "G" }
-          jump_to_bottom
-        else
-          nil
-        end
-      end
-
-      def selected_item
-        return nil if @jobs.empty? || @selected_row >= @jobs.size
-        @jobs[@selected_row]
-      end
-
-      def bindings
-        [
-          { key: "j/k", action: "Navigate" },
-          { key: "Enter", action: "Detail" },
-          { key: "G/g", action: "Bottom/Top" }
-        ]
-      end
-
-      def breadcrumb = "in-progress"
-
-      private
-
-      def move_selection(delta)
-        return if @jobs.empty?
-        @selected_row = (@selected_row + delta).clamp(0, @jobs.size - 1)
-        @table_state.select(@selected_row)
-      end
-
-      def jump_to_top
-        @selected_row = 0
-        @table_state.select(0)
-      end
-
-      def jump_to_bottom
-        return if @jobs.empty?
-        @selected_row = @jobs.size - 1
-        @table_state.select(@selected_row)
       end
 
       def time_ago(time)

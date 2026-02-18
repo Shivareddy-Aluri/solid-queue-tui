@@ -1,31 +1,22 @@
 default: &default
-  adapter: sqlite3
+  adapter: postgresql
+  encoding: unicode
   pool: 20
-  timeout: 5000
 
 development:
   primary:
     <<: *default
-    database: storage/development.sqlite3
+    database: solid_queue_tui_dev
   queue:
     <<: *default
-    database: storage/queue.sqlite3
+    database: solid_queue_tui_dev
     migrations_paths: db/queue_migrate
 
 test:
   primary:
     <<: *default
-    database: storage/test.sqlite3
+    database: solid_queue_tui_test
   queue:
     <<: *default
-    database: storage/queue_test.sqlite3
-    migrations_paths: db/queue_migrate
-
-production:
-  primary:
-    <<: *default
-    database: storage/production.sqlite3
-  queue:
-    <<: *default
-    database: storage/queue_production.sqlite3
+    database: solid_queue_tui_test
     migrations_paths: db/queue_migrate

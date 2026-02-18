@@ -1,0 +1,108 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Enqueues 100 jobs per queue across 10 queues (1,000 jobs total).
+# Also adds scheduled jobs, failing jobs, and concurrency-limited jobs.
+#
+# Usage:
+#   bin/rails runner bin/enqueue_jobs
+
+puts "=== Enqueuing jobs across 10 queues ==="
+puts ""
+
+total = 0
+
+# 1. urgent (100 jobs)
+100.times do |i|
+  UrgentAlertJob.perform_later("alert_type_#{i % 5}", { severity: %w[low medium high critical].sample, source: "monitor-#{i}" })
+end
+total += 100
+puts "  urgent:         100 jobs enqueued"
+
+# 2. default (100 jobs — mix of ProcessOrder + Failing)
+80.times { |i| ProcessOrderJob.perform_later(1000 + i) }
+20.times { |i| FailingJob.perform_later("scenario_#{i}") }
+total += 100
+puts "  default:        100 jobs enqueued (80 process_order + 20 failing)"
+
+# 3. mailers (100 jobs)
+100.times do |i|
+  SendNotificationJob.perform_later(i, "Welcome message ##{i}")
+end
+total += 100
+puts "  mailers:        100 jobs enqueued"
+
+# 4. reports (100 jobs — mix of GenerateReport + DataExport)
+60.times { |i| GenerateReportJob.perform_later("report_#{i % 10}", { month: "2025-#{(i % 12) + 1}" }) }
+40.times { |i| DataExportJob.perform_later(%w[csv json xlsx].sample, 100 + i) }
+total += 100
+puts "  reports:        100 jobs enqueued (60 generate_report + 40 data_export)"
+
+# 5. low_priority (100 jobs — mix of ScheduledCleanup + WarmCache)
+50.times { ScheduledCleanupJob.perform_later }
+50.times { WarmCacheJob.perform_later }
+total += 100
+puts "  low_priority:   100 jobs enqueued (50 cleanup + 50 cache)"
+
+# 6. webhooks (100 jobs)
+100.times do |i|
+  DeliverWebhookJob.perform_later("https://example.com/hooks/#{i}", { event: "order.created", id: 2000 + i })
+end
+total += 100
+puts "  webhooks:       100 jobs enqueued"
+
+# 7. analytics (100 jobs)
+events = %w[page_view signup purchase cart_add search logout profile_update]
+100.times do |i|
+  TrackEventJob.perform_later(events.sample, { user_id: rand(1..500), timestamp: Time.now.utc.iso8601 })
+end
+total += 100
+puts "  analytics:      100 jobs enqueued"
+
+# 8. billing (100 jobs)
+100.times do |i|
+  ProcessPaymentJob.perform_later(3000 + i, rand(500..50_000))
+end
+total += 100
+puts "  billing:        100 jobs enqueued"
+
+# 9. notifications (100 jobs)
+titles = ["New message", "Order shipped", "Payment received", "Friend request", "Reminder"]
+100.times do |i|
+  SendPushNotificationJob.perform_later(rand(1..200), titles.sample, "Details for notification ##{i}")
+end
+total += 100
+puts "  notifications:  100 jobs enqueued"
+
+# 10. imports (100 jobs)
+models = %w[User Product Order Invoice Customer]
+100.times do |i|
+  ImportCsvJob.perform_later("/tmp/uploads/#{models.sample.downcase}_batch_#{i}.csv", models.sample)
+end
+total += 100
+puts "  imports:        100 jobs enqueued"
+
+puts ""
+
+# Bonus: scheduled jobs (50 across various queues, delayed 5-120 min)
+50.times do |i|
+  delay = rand(5..120).minutes
+  case i % 5
+  when 0 then ScheduledCleanupJob.set(wait: delay).perform_later
+  when 1 then WarmCacheJob.set(wait: delay).perform_later
+  when 2 then GenerateReportJob.set(wait: delay).perform_later("scheduled_report_#{i}", {})
+  when 3 then TrackEventJob.set(wait: delay).perform_later("scheduled_event", { batch: i })
+  when 4 then DeliverWebhookJob.set(wait: delay).perform_later("https://example.com/scheduled/#{i}", {})
+  end
+end
+total += 50
+puts "  + 50 scheduled jobs (delayed 5-120 min)"
+
+# Bonus: concurrency-limited jobs (30 with overlapping keys)
+skus = %w[SKU-LAPTOP-001 SKU-PHONE-002 SKU-TABLET-003 SKU-WATCH-004 SKU-HEADSET-005]
+30.times { |i| SyncInventoryJob.perform_later(skus[i % 5]) }
+total += 30
+puts "  + 30 concurrency-limited sync_inventory jobs (5 SKUs)"
+
+puts ""
+puts "=== Total: #{total} jobs enqueued ==="

@@ -19,10 +19,9 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "ratatui_ruby", "~> 1.3"
-  spec.add_dependency "activerecord", ">= 7.0"
+  spec.add_dependency "solid_queue", ">= 1.0"
+  spec.add_dependency "railties", ">= 7.1"
 
-  spec.add_development_dependency "sqlite3"
-  spec.add_development_dependency "pg"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "minitest", "~> 5.0"
 end

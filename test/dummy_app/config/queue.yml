@@ -1,23 +1,23 @@
-default: &default
-  dispatchers:
-    - polling_interval: 1
-      batch_size: 500
-  workers:
-    - queues: "urgent"
-      threads: 2
-      polling_interval: 0.5
-    - queues: "default,mailers"
-      threads: 3
-      polling_interval: 0.5
-    - queues: "reports,low_priority"
-      threads: 2
-      polling_interval: 1
+dispatchers:
+  - polling_interval: 1
+    batch_size: 500
 
-development:
-  <<: *default
-
-test:
-  <<: *default
-
-production:
-  <<: *default
+workers:
+  - queues: "urgent"
+    threads: 2
+    polling_interval: 0.5
+  - queues: "default,mailers"
+    threads: 3
+    polling_interval: 0.5
+  - queues: "reports,low_priority"
+    threads: 2
+    polling_interval: 1
+  - queues: "webhooks,notifications"
+    threads: 3
+    polling_interval: 0.5
+  - queues: "analytics,billing"
+    threads: 2
+    polling_interval: 0.5
+  - queues: "imports"
+    threads: 2
+    polling_interval: 1

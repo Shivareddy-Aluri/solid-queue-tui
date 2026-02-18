@@ -10,109 +10,55 @@ module SolidQueueTui
         keyword_init: true
       )
 
-      def self.fetch(filter: nil, limit: 200)
-        conn = ActiveRecord::Base.connection
-
-        sql = <<~SQL
-          SELECT
-            fe.id,
-            fe.job_id,
-            j.queue_name,
-            j.class_name,
-            j.priority,
-            j.active_job_id,
-            j.arguments,
-            j.created_at AS job_created_at,
-            fe.error,
-            fe.created_at AS failed_at
-          FROM solid_queue_failed_executions fe
-          JOIN solid_queue_jobs j ON j.id = fe.job_id
-        SQL
-
-        if filter && !filter.empty?
-          sql += " WHERE j.class_name LIKE #{conn.quote("%#{filter}%")}"
+      def self.fetch(filter: nil, limit: 100, offset: 0)
+        scope = SolidQueue::FailedExecution.joins(:job).includes(:job)
+        if filter.present?
+          scope = scope.merge(SolidQueue::Job.where("class_name LIKE ?", "%#{filter}%"))
         end
+        scope = scope.order(created_at: :desc).offset(offset).limit(limit)
 
-        sql += " ORDER BY fe.created_at DESC LIMIT #{limit.to_i}"
-
-        rows = conn.select_all(sql)
-        rows.map do |row|
-          error = parse_json(row["error"])
-
-          FailedJob.new(
-            id: row["id"].to_i,
-            job_id: row["job_id"].to_i,
-            queue_name: row["queue_name"],
-            class_name: row["class_name"],
-            priority: row["priority"].to_i,
-            error_class: error["exception_class"] || error["class"] || "Unknown",
-            error_message: error["message"] || "No message",
-            backtrace: error["backtrace"] || [],
-            active_job_id: row["active_job_id"],
-            arguments: parse_json(row["arguments"]),
-            failed_at: parse_time(row["failed_at"]),
-            created_at: parse_time(row["job_created_at"])
-          )
-        end
+        scope.map { |fe| build_failed_job(fe) }
       rescue => e
         []
       end
 
+      def self.count(filter: nil)
+        scope = SolidQueue::FailedExecution.joins(:job)
+        if filter.present?
+          scope = scope.merge(SolidQueue::Job.where("class_name LIKE ?", "%#{filter}%"))
+        end
+        scope.count
+      rescue => e
+        0
+      end
+
       def self.fetch_one(id)
-        conn = ActiveRecord::Base.connection
+        fe = SolidQueue::FailedExecution.includes(:job).find_by(id: id)
+        return nil unless fe
 
-        row = conn.select_one(<<~SQL)
-          SELECT
-            fe.id,
-            fe.job_id,
-            j.queue_name,
-            j.class_name,
-            j.priority,
-            j.active_job_id,
-            j.arguments,
-            j.created_at AS job_created_at,
-            fe.error,
-            fe.created_at AS failed_at
-          FROM solid_queue_failed_executions fe
-          JOIN solid_queue_jobs j ON j.id = fe.job_id
-          WHERE fe.id = #{conn.quote(id.to_i)}
-        SQL
-
-        return nil unless row
-
-        error = parse_json(row["error"])
-
-        FailedJob.new(
-          id: row["id"].to_i,
-          job_id: row["job_id"].to_i,
-          queue_name: row["queue_name"],
-          class_name: row["class_name"],
-          priority: row["priority"].to_i,
-          error_class: error["exception_class"] || error["class"] || "Unknown",
-          error_message: error["message"] || "No message",
-          backtrace: error["backtrace"] || [],
-          active_job_id: row["active_job_id"],
-          arguments: parse_json(row["arguments"]),
-          failed_at: parse_time(row["failed_at"]),
-          created_at: parse_time(row["job_created_at"])
-        )
+        build_failed_job(fe)
       rescue => e
         nil
       end
 
-      private_class_method def self.parse_json(value)
-        return {} if value.nil?
-        value.is_a?(Hash) || value.is_a?(Array) ? value : JSON.parse(value.to_s)
-      rescue JSON::ParserError
-        {}
+      def self.build_failed_job(fe)
+        job = fe.job
+        FailedJob.new(
+          id: fe.id,
+          job_id: job.id,
+          queue_name: job.queue_name,
+          class_name: job.class_name,
+          priority: job.priority,
+          error_class: fe.exception_class || "Unknown",
+          error_message: fe.message || "No message",
+          backtrace: fe.backtrace || [],
+          active_job_id: job.active_job_id,
+          arguments: job.arguments,
+          failed_at: fe.created_at,
+          created_at: job.created_at
+        )
       end
-
-      private_class_method def self.parse_time(value)
-        return nil if value.nil?
-        value.is_a?(Time) ? value : Time.parse(value.to_s)
-      rescue
-        nil
-      end
+      private_class_method :build_failed_job
     end
   end
 end

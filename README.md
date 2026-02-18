@@ -6,9 +6,16 @@ A terminal UI dashboard for [Solid Queue](https://github.com/rails/solid_queue),
 
 ![Solid Queue TUI Demo](screenshots/demo.gif)
 
+## Requirements
+
+- A **Rails application** (7.1+) with [Solid Queue](https://github.com/rails/solid_queue) configured as the Active Job backend
+- Ruby 3.2+
+
+This gem is a Rails Railtie. It uses the host app's existing database connection and Solid Queue's ActiveRecord models directly — no separate database configuration is needed.
+
 ## Installation
 
-Add to your Gemfile:
+Add to your Rails app's Gemfile:
 
 ```ruby
 gem "solid_queue_tui"
@@ -22,17 +29,27 @@ bundle install
 
 ## Usage
 
-Create `config/solid_tui.yml` in your Rails app:
-
-```yaml
-database_url: postgres://localhost/myapp_queue
-refresh: 2
-```
-
-Then run:
+Run from your **Rails application's root directory**:
 
 ```bash
 bundle exec sqtui
+```
+
+The TUI boots your Rails environment (via `config/environment.rb`), connects to the same database your app uses, and queries Solid Queue tables through its ActiveRecord models.
+
+You can also launch via a rake task:
+
+```bash
+bundle exec rake solid_queue_tui:start
+```
+
+### Configuration
+
+The refresh interval defaults to 2 seconds. You can customize it in an initializer:
+
+```ruby
+# config/initializers/solid_queue_tui.rb
+SolidQueueTui.refresh_interval = 5
 ```
 
 ## Views
@@ -62,12 +79,6 @@ Press `1`-`8` to switch between views:
 | `Esc` | Back to Dashboard |
 | `r` | Refresh |
 | `q` | Quit |
-
-## Requirements
-
-- Ruby 3.2+
-- Solid Queue
-- One of: `sqlite3`, `pg`, `mysql2`
 
 ## License
 

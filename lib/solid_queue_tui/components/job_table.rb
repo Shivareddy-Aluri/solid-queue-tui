@@ -12,15 +12,18 @@ module SolidQueueTui
         "completed" => :dark_gray,
         "active" => :green,
         "paused" => :red,
+        "delayed" => :red,
+        "pending" => :dark_gray,
         "unknown" => :white
       }.freeze
 
-      def initialize(tui, title:, columns:, rows:, selected_row: nil, empty_message: "No data")
+      def initialize(tui, title:, columns:, rows:, selected_row: nil, total_count: nil, empty_message: "No data")
         @tui = tui
         @title = title
         @columns = columns
         @rows = rows
         @selected_row = selected_row
+        @total_count = total_count
         @empty_message = empty_message
       end
 
@@ -36,9 +39,18 @@ module SolidQueueTui
       private
 
       def title_text
-        text = " #{@title} [#{@rows.size}]"
+        count_text = if @total_count && @total_count > @rows.size
+                       "#{@rows.size}/#{format_number(@total_count)}"
+                     else
+                       @rows.size.to_s
+                     end
+        text = " #{@title} [#{count_text}]"
         text += "  #{@selected_row + 1}/#{@rows.size}" if @selected_row && @rows.size > 0
         text + " "
+      end
+
+      def format_number(n)
+        n.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
       end
 
       def render_table(frame, area, table_state)

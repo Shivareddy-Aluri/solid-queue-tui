@@ -3,25 +3,52 @@
 module SolidQueueTui
   module Views
     class FinishedView
+      include Filterable
+
+      PAGE_SIZE = 100
+      LOAD_THRESHOLD = 10
+
       def initialize(tui)
         @tui = tui
         @table_state = RatatuiRuby::TableState.new(nil)
         @table_state.select(0)
         @selected_row = 0
         @jobs = []
-        @filter = nil
-        @filter_mode = false
-        @filter_input = ""
+        @total_count = nil
+        @all_loaded = false
+        init_filter
       end
 
       def update(jobs:)
         @jobs = jobs
+        @all_loaded = jobs.size < PAGE_SIZE
         @selected_row = @selected_row.clamp(0, [@jobs.size - 1, 0].max)
         @table_state.select(@selected_row)
       end
 
+      def append(jobs:)
+        @jobs.concat(jobs)
+        @all_loaded = jobs.size < PAGE_SIZE
+      end
+
+      def total_count=(count)
+        @total_count = count
+      end
+
+      def current_offset
+        @jobs.size
+      end
+
+      def reset_pagination!
+        @jobs = []
+        @total_count = nil
+        @all_loaded = false
+        @selected_row = 0
+        @table_state.select(0)
+      end
+
       def render(frame, area)
-        if @filter_mode
+        if filter_mode?
           content_area, filter_area = @tui.layout_split(
             area,
             direction: :vertical,
@@ -38,7 +65,7 @@ module SolidQueueTui
       end
 
       def handle_input(event)
-        if @filter_mode
+        if filter_mode?
           handle_filter_input(event)
         else
           handle_normal_input(event)
@@ -50,14 +77,9 @@ module SolidQueueTui
         @jobs[@selected_row]
       end
 
-      def filter = @filter
-
       def bindings
-        if @filter_mode
-          [
-            { key: "Enter", action: "Apply" },
-            { key: "Esc", action: "Cancel" }
-          ]
+        if filter_mode?
+          filter_bindings
         else
           [
             { key: "j/k", action: "Navigate" },
@@ -70,7 +92,7 @@ module SolidQueueTui
       end
 
       def capturing_input?
-        @filter_mode
+        filter_mode?
       end
 
       def breadcrumb
@@ -79,46 +101,27 @@ module SolidQueueTui
 
       private
 
+      def needs_more?
+        !@all_loaded && @selected_row >= @jobs.size - LOAD_THRESHOLD
+      end
+
       def handle_normal_input(event)
         case event
         in { type: :key, code: "j" } | { type: :key, code: "up" }
           move_selection(-1)
         in { type: :key, code: "k" } | { type: :key, code: "down" }
-          move_selection(1)
+          result = move_selection(1)
+          return :load_more if result == :load_more
+          nil
         in { type: :key, code: "g" }
           jump_to_top
         in { type: :key, code: "G" }
           jump_to_bottom
         in { type: :key, code: "/" }
-          @filter_mode = true
-          @filter_input = @filter || ""
+          enter_filter_mode
+          nil
         in { type: :key, code: "esc" }
-          @filter = nil
-          @filter_input = ""
-          :refresh
-        else
-          nil
-        end
-      end
-
-      def handle_filter_input(event)
-        case event
-        in { type: :key, code: "enter" }
-          @filter = @filter_input.empty? ? nil : @filter_input
-          @filter_mode = false
-          @selected_row = 0
-          @table_state.select(0)
-          :refresh
-        in { type: :key, code: "esc" }
-          @filter_mode = false
-          @filter_input = @filter || ""
-          nil
-        in { type: :key, code: "backspace" }
-          @filter_input = @filter_input[0...-1]
-          nil
-        in { type: :key, code: /\A.\z/ => char }
-          @filter_input += char
-          nil
+          clear_filter
         else
           nil
         end
@@ -128,6 +131,7 @@ module SolidQueueTui
         return if @jobs.empty?
         @selected_row = (@selected_row + delta).clamp(0, @jobs.size - 1)
         @table_state.select(@selected_row)
+        :load_more if needs_more?
       end
 
       def jump_to_top
@@ -139,6 +143,7 @@ module SolidQueueTui
         return if @jobs.empty?
         @selected_row = @jobs.size - 1
         @table_state.select(@selected_row)
+        return :load_more if needs_more?
       end
 
       def render_table(frame, area)
@@ -162,35 +167,17 @@ module SolidQueueTui
           }
         end
 
-        title = @filter ? "Finished (filter: #{@filter})" : "Finished"
-
         table = Components::JobTable.new(
           @tui,
-          title: title,
+          title: filter_title("Finished"),
           columns: columns,
           rows: rows,
           selected_row: @selected_row,
+          total_count: @total_count,
           empty_message: @filter ? "No finished jobs matching '#{@filter}'" : "No finished jobs"
         )
 
         table.render(frame, area, @table_state)
-      end
-
-      def render_filter_input(frame, area)
-        frame.render_widget(
-          @tui.paragraph(
-            text: @filter_input + "\u2588",
-            style: @tui.style(fg: :white),
-            block: @tui.block(
-              title: " Filter by class name ",
-              title_style: @tui.style(fg: :yellow),
-              borders: [:all],
-              border_type: :rounded,
-              border_style: @tui.style(fg: :cyan)
-            )
-          ),
-          area
-        )
       end
 
       def format_time(time)

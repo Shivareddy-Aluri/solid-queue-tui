@@ -9,15 +9,11 @@ require "action_view/railtie"
 
 Bundler.require(*Rails.groups)
 
-module SolidQueueTestApp
+module DummyApp
   class Application < Rails::Application
     config.load_defaults 8.1
     config.autoload_lib(ignore: %w[assets tasks])
-
-    # Use Solid Queue as the Active Job backend
-    config.active_job.queue_adapter = :solid_queue
-
-    # Don't generate system test files.
     config.generators.system_tests = nil
+    config.active_job.queue_adapter = :solid_queue
   end
 end

@@ -1,6 +1,23 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require "solid_queue_tui"
+# Boot the host Rails application's environment.
+# This ensures ActiveRecord, Solid Queue models, and the database
+# connection pool are fully loaded before the TUI starts.
+env_file = File.join(Dir.pwd, "config", "environment.rb")
+
+unless File.exist?(env_file)
+  $stderr.puts "Error: config/environment.rb not found in #{Dir.pwd}"
+  $stderr.puts ""
+  $stderr.puts "sqtui must be run from your Rails application's root directory."
+  $stderr.puts "Make sure solid_queue_tui is in your Gemfile and Solid Queue is configured."
+  exit 1
+end
+
+require env_file
+
+# Log ActiveRecord queries to the Rails log file so TUI operations
+# are visible in log/development.log (or whichever environment is active).
+ActiveRecord::Base.logger = Rails.logger
 
 SolidQueueTui::CLI.run(ARGV)

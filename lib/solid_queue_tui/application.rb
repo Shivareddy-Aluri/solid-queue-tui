@@ -39,8 +39,7 @@ module SolidQueueTui
     end
 
     def run
-      config = Connection.establish!
-      @refresh_interval = config.fetch("refresh", 2).to_i
+      @refresh_interval = SolidQueueTui.refresh_interval
       setup_dev_reloader! if @dev
 
       RatatuiRuby.run do |tui|
@@ -196,6 +195,9 @@ module SolidQueueTui
       in { type: :key, code: "tab" }
         switch_view((@current_view + 1) % VIEW_COUNT)
         return false
+      in { type: :key, code: "back_tab" }
+        switch_view((@current_view - 1) % VIEW_COUNT)
+        return false
       in { type: :key, code: "enter" }
         open_detail
         return false
@@ -210,7 +212,11 @@ module SolidQueueTui
 
       # Pass to current view
       result = current_view.handle_input(event)
-      refresh_data! if result == :refresh
+      if result == :refresh
+        refresh_data!
+      elsif result == :load_more
+        load_more_data!
+      end
 
       false
     end
@@ -254,21 +260,28 @@ module SolidQueueTui
         current_view.update(queues: queues)
       when VIEW_FAILED
         filter = current_view.filter
-        failed_jobs = Data::FailedQuery.fetch(filter: filter)
+        current_view.total_count = Data::FailedQuery.count(filter: filter)
+        failed_jobs = Data::FailedQuery.fetch(filter: filter, limit: 100, offset: 0)
         current_view.update(failed_jobs: failed_jobs)
       when VIEW_IN_PROGRESS
-        jobs = Data::JobsQuery.fetch(status: "claimed")
+        filter = current_view.filter
+        current_view.total_count = Data::JobsQuery.count(status: "claimed", filter: filter)
+        jobs = Data::JobsQuery.fetch(status: "claimed", filter: filter, limit: 100, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_BLOCKED
-        jobs = Data::JobsQuery.fetch(status: "blocked")
+        filter = current_view.filter
+        current_view.total_count = Data::JobsQuery.count(status: "blocked", filter: filter)
+        jobs = Data::JobsQuery.fetch(status: "blocked", filter: filter, limit: 100, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_SCHEDULED
         filter = current_view.filter
-        jobs = Data::JobsQuery.fetch(status: "scheduled", filter: filter)
+        current_view.total_count = Data::JobsQuery.count(status: "scheduled", filter: filter)
+        jobs = Data::JobsQuery.fetch(status: "scheduled", filter: filter, limit: 100, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_FINISHED
         filter = current_view.respond_to?(:filter) ? current_view.filter : nil
-        jobs = Data::JobsQuery.fetch(status: "completed", filter: filter)
+        current_view.total_count = Data::JobsQuery.count(status: "completed", filter: filter)
+        jobs = Data::JobsQuery.fetch(status: "completed", filter: filter, limit: 100, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_WORKERS
         processes = Data::ProcessesQuery.fetch
@@ -276,6 +289,36 @@ module SolidQueueTui
       end
     rescue => e
       # Silently handle refresh errors to keep TUI responsive
+    end
+
+    def load_more_data!
+      view = current_view
+      offset = view.current_offset
+
+      case @current_view
+      when VIEW_FAILED
+        filter = view.filter
+        more = Data::FailedQuery.fetch(filter: filter, limit: 100, offset: offset)
+        view.append(failed_jobs: more)
+      when VIEW_IN_PROGRESS
+        filter = view.filter
+        more = Data::JobsQuery.fetch(status: "claimed", filter: filter, limit: 100, offset: offset)
+        view.append(jobs: more)
+      when VIEW_BLOCKED
+        filter = view.filter
+        more = Data::JobsQuery.fetch(status: "blocked", filter: filter, limit: 100, offset: offset)
+        view.append(jobs: more)
+      when VIEW_SCHEDULED
+        filter = view.filter
+        more = Data::JobsQuery.fetch(status: "scheduled", filter: filter, limit: 100, offset: offset)
+        view.append(jobs: more)
+      when VIEW_FINISHED
+        filter = view.respond_to?(:filter) ? view.filter : nil
+        more = Data::JobsQuery.fetch(status: "completed", filter: filter, limit: 100, offset: offset)
+        view.append(jobs: more)
+      end
+    rescue => e
+      # Silently handle load errors
     end
 
     def setup_dev_reloader!
@@ -396,6 +439,7 @@ module SolidQueueTui
         help_section("Navigation"),
         help_line("1-8", "Switch between views"),
         help_line("Tab", "Next view"),
+        help_line("Shift + Tab", "Previous View"),
         help_line(":", "Command mode (:queues, :failed, ...)"),
         help_line("Esc", "Back to Dashboard"),
         help_line("j / Up", "Move selection up"),

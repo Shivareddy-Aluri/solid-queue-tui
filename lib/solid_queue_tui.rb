@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
-require "json"
-require "time"
-
 require_relative "solid_queue_tui/version"
-require_relative "solid_queue_tui/connection"
 
 # Data layer
 require_relative "solid_queue_tui/data/stats"
@@ -18,11 +14,15 @@ require_relative "solid_queue_tui/actions/retry_job"
 require_relative "solid_queue_tui/actions/discard_job"
 require_relative "solid_queue_tui/actions/dispatch_scheduled_job"
 require_relative "solid_queue_tui/actions/discard_scheduled_job"
+require_relative "solid_queue_tui/actions/toggle_queue_pause"
 
 # Components
 require_relative "solid_queue_tui/components/header"
 require_relative "solid_queue_tui/components/job_table"
 require_relative "solid_queue_tui/components/help_bar"
+
+# View concerns
+require_relative "solid_queue_tui/views/concerns/filterable"
 
 # Views
 require_relative "solid_queue_tui/views/dashboard_view"
@@ -43,4 +43,11 @@ require_relative "solid_queue_tui/application"
 require_relative "solid_queue_tui/cli"
 
 module SolidQueueTui
+  @refresh_interval = 200
+
+  class << self
+    attr_accessor :refresh_interval
+  end
 end
+
+require_relative "solid_queue_tui/railtie" if defined?(Rails::Railtie)
