@@ -14,6 +14,7 @@ require_relative "solid_queue_tui/actions/retry_job"
 require_relative "solid_queue_tui/actions/discard_job"
 require_relative "solid_queue_tui/actions/dispatch_scheduled_job"
 require_relative "solid_queue_tui/actions/discard_scheduled_job"
+require_relative "solid_queue_tui/actions/toggle_queue_pause"
 
 # Components
 require_relative "solid_queue_tui/components/header"
