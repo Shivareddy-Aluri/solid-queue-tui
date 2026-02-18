@@ -61,36 +61,34 @@ module SolidQueueTui
       end
 
       def render_nav(frame, area)
-        spans = [
-          @tui.text_span(content: " ", style: @tui.style(fg: :white))
-        ]
+        tab_spans = []
 
         VIEWS.each_with_index do |view, idx|
           active = idx == @current_view
 
-          spans << @tui.text_span(
-            content: "<#{view[:key]}>",
-            style: @tui.style(fg: :cyan, modifiers: active ? [:bold] : [])
-          )
-          spans << @tui.text_span(
-            content: " #{view[:label]}",
-            style: @tui.style(
-              fg: active ? :yellow : :dark_gray,
-              modifiers: active ? [:bold, :underlined] : []
+          if active
+            tab_spans << @tui.text_span(
+              content: " #{view[:key]}·#{view[:label]} ",
+              style: @tui.style(fg: :cyan, modifiers: [:bold, :underlined])
             )
-          )
-          spans << @tui.text_span(content: "  ", style: @tui.style(fg: :white))
+          else
+            tab_spans << @tui.text_span(
+              content: " #{view[:key]}·#{view[:label]} ",
+              style: @tui.style(fg: :dark_gray)
+            )
+          end
+          tab_spans << @tui.text_span(content: " ", style: @tui.style(fg: :white))
         end
 
         lines = [
-          @tui.text_line(spans: spans, alignment: :right),
+          @tui.text_line(spans: tab_spans, alignment: :right),
           @tui.text_line(spans: [
-            @tui.text_span(content: "<?>", style: @tui.style(fg: :cyan)),
-            @tui.text_span(content: " Help  ", style: @tui.style(fg: :dark_gray)),
-            @tui.text_span(content: "<q>", style: @tui.style(fg: :cyan)),
-            @tui.text_span(content: " Quit  ", style: @tui.style(fg: :dark_gray)),
-            @tui.text_span(content: "<r>", style: @tui.style(fg: :cyan)),
-            @tui.text_span(content: " Refresh", style: @tui.style(fg: :dark_gray))
+            @tui.text_span(content: "<?> ", style: @tui.style(fg: :cyan)),
+            @tui.text_span(content: "Help  ", style: @tui.style(fg: :dark_gray)),
+            @tui.text_span(content: "<q> ", style: @tui.style(fg: :cyan)),
+            @tui.text_span(content: "Quit  ", style: @tui.style(fg: :dark_gray)),
+            @tui.text_span(content: "<r> ", style: @tui.style(fg: :cyan)),
+            @tui.text_span(content: "Refresh", style: @tui.style(fg: :dark_gray))
           ], alignment: :right)
         ]
 
