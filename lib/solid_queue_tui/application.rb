@@ -261,12 +261,14 @@ module SolidQueueTui
         failed_jobs = Data::FailedQuery.fetch(filter: filter, limit: 100, offset: 0)
         current_view.update(failed_jobs: failed_jobs)
       when VIEW_IN_PROGRESS
-        current_view.total_count = Data::JobsQuery.count(status: "claimed")
-        jobs = Data::JobsQuery.fetch(status: "claimed", limit: 100, offset: 0)
+        filter = current_view.filter
+        current_view.total_count = Data::JobsQuery.count(status: "claimed", filter: filter)
+        jobs = Data::JobsQuery.fetch(status: "claimed", filter: filter, limit: 100, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_BLOCKED
-        current_view.total_count = Data::JobsQuery.count(status: "blocked")
-        jobs = Data::JobsQuery.fetch(status: "blocked", limit: 100, offset: 0)
+        filter = current_view.filter
+        current_view.total_count = Data::JobsQuery.count(status: "blocked", filter: filter)
+        jobs = Data::JobsQuery.fetch(status: "blocked", filter: filter, limit: 100, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_SCHEDULED
         filter = current_view.filter
@@ -296,10 +298,12 @@ module SolidQueueTui
         more = Data::FailedQuery.fetch(filter: filter, limit: 100, offset: offset)
         view.append(failed_jobs: more)
       when VIEW_IN_PROGRESS
-        more = Data::JobsQuery.fetch(status: "claimed", limit: 100, offset: offset)
+        filter = view.filter
+        more = Data::JobsQuery.fetch(status: "claimed", filter: filter, limit: 100, offset: offset)
         view.append(jobs: more)
       when VIEW_BLOCKED
-        more = Data::JobsQuery.fetch(status: "blocked", limit: 100, offset: offset)
+        filter = view.filter
+        more = Data::JobsQuery.fetch(status: "blocked", filter: filter, limit: 100, offset: offset)
         view.append(jobs: more)
       when VIEW_SCHEDULED
         filter = view.filter

@@ -105,6 +105,7 @@ module SolidQueueTui
           [
             { key: "j/k", action: "Navigate" },
             { key: "Enter", action: "Detail" },
+            { key: "/", action: "Filter"},
             { key: "N", action: "Run Now" },
             { key: "D", action: "Discard" },
             { key: "G/g", action: "Bottom/Top" }
