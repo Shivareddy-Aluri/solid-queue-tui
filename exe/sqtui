@@ -16,4 +16,8 @@ end
 
 require env_file
 
+# Log ActiveRecord queries to the Rails log file so TUI operations
+# are visible in log/development.log (or whichever environment is active).
+ActiveRecord::Base.logger = Rails.logger
+
 SolidQueueTui::CLI.run(ARGV)

@@ -9,11 +9,14 @@ module SolidQueueTui
       )
 
       def self.fetch
-        SolidQueue::Queue.all.map do |queue|
+        queues = SolidQueue::Queue.all
+        pauses = SolidQueue::Pause.where(queue_name: queues.map(&:name)).index_by(&:queue_name)
+
+        queues.map do |queue|
           QueueInfo.new(
             name: queue.name,
             size: queue.size,
-            paused: queue.paused?
+            paused: pauses[queue.name].present?
           )
         end
       rescue => e
