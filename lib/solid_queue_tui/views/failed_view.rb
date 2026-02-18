@@ -3,6 +3,8 @@
 module SolidQueueTui
   module Views
     class FailedView
+      include Filterable
+
       PAGE_SIZE = 100
       LOAD_THRESHOLD = 10
 
@@ -14,10 +16,8 @@ module SolidQueueTui
         @failed_jobs = []
         @total_count = nil
         @all_loaded = false
-        @filter = nil
-        @filter_mode = false
-        @filter_input = ""
         @confirm_action = nil
+        init_filter
       end
 
       def update(failed_jobs:)
@@ -60,7 +60,7 @@ module SolidQueueTui
           )
           render_failed_table(frame, content_area)
           render_confirm(frame, confirm_area)
-        elsif @filter_mode
+        elsif filter_mode?
           content_area, filter_area = @tui.layout_split(
             area,
             direction: :vertical,
@@ -79,7 +79,7 @@ module SolidQueueTui
       def handle_input(event)
         if @confirm_action
           handle_confirm_input(event)
-        elsif @filter_mode
+        elsif filter_mode?
           handle_filter_input(event)
         else
           handle_normal_input(event)
@@ -91,19 +91,14 @@ module SolidQueueTui
         @failed_jobs[@selected_row]
       end
 
-      def filter = @filter
-
       def bindings
         if @confirm_action
           [
             { key: "y", action: "Confirm" },
             { key: "n/Esc", action: "Cancel" }
           ]
-        elsif @filter_mode
-          [
-            { key: "Enter", action: "Apply" },
-            { key: "Esc", action: "Cancel" }
-          ]
+        elsif filter_mode?
+          filter_bindings
         else
           [
             { key: "j/k", action: "Navigate" },
@@ -117,7 +112,7 @@ module SolidQueueTui
       end
 
       def capturing_input?
-        @filter_mode || @confirm_action
+        filter_mode? || @confirm_action
       end
 
       def breadcrumb
@@ -152,13 +147,10 @@ module SolidQueueTui
           @confirm_action = :retry_all unless @failed_jobs.empty?
           nil
         in { type: :key, code: "/" }
-          @filter_mode = true
-          @filter_input = @filter || ""
+          enter_filter_mode
           nil
         in { type: :key, code: "esc" }
-          @filter = nil
-          @filter_input = ""
-          :refresh
+          clear_filter
         else
           nil
         end
@@ -186,28 +178,6 @@ module SolidQueueTui
           end
         in { type: :key, code: "n" } | { type: :key, code: "esc" }
           @confirm_action = nil
-          nil
-        else
-          nil
-        end
-      end
-
-      def handle_filter_input(event)
-        case event
-        in { type: :key, code: "enter" }
-          @filter = @filter_input.empty? ? nil : @filter_input
-          @filter_mode = false
-          @selected_row = 0
-          @table_state.select(0)
-          :refresh
-        in { type: :key, code: "esc" }
-          @filter_mode = false
-          nil
-        in { type: :key, code: "backspace" }
-          @filter_input = @filter_input[0...-1]
-          nil
-        in { type: :key, code: /\A.\z/ => char }
-          @filter_input += char
           nil
         else
           nil
@@ -254,11 +224,9 @@ module SolidQueueTui
           }
         end
 
-        title = @filter ? "Failed Jobs (filter: #{@filter})" : "Failed Jobs"
-
         table = Components::JobTable.new(
           @tui,
-          title: title,
+          title: filter_title("Failed Jobs"),
           columns: columns,
           rows: rows,
           selected_row: @selected_row,
@@ -291,23 +259,6 @@ module SolidQueueTui
               borders: [:all],
               border_type: :rounded,
               border_style: @tui.style(fg: :red)
-            )
-          ),
-          area
-        )
-      end
-
-      def render_filter_input(frame, area)
-        frame.render_widget(
-          @tui.paragraph(
-            text: @filter_input + "\u2588",
-            style: @tui.style(fg: :white),
-            block: @tui.block(
-              title: " Filter by class name ",
-              title_style: @tui.style(fg: :yellow),
-              borders: [:all],
-              border_type: :rounded,
-              border_style: @tui.style(fg: :cyan)
             )
           ),
           area

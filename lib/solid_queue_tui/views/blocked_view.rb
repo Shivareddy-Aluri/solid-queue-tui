@@ -3,6 +3,8 @@
 module SolidQueueTui
   module Views
     class BlockedView
+      include Filterable
+
       PAGE_SIZE = 100
       LOAD_THRESHOLD = 10
 
@@ -14,9 +16,7 @@ module SolidQueueTui
         @jobs = []
         @total_count = nil
         @all_loaded = false
-        @filter = nil
-        @filter_mode = false
-        @filter_input = ""
+        init_filter
       end
 
       def update(jobs:)
@@ -48,7 +48,7 @@ module SolidQueueTui
       end
 
       def render(frame, area)
-        if @filter_mode
+        if filter_mode?
           content_area, filter_area = @tui.layout_split(
             area,
             direction: :vertical,
@@ -65,7 +65,7 @@ module SolidQueueTui
       end
 
       def handle_input(event)
-        if @filter_mode
+        if filter_mode?
           handle_filter_input(event)
         else
           handle_normal_input(event)
@@ -77,18 +77,9 @@ module SolidQueueTui
         @jobs[@selected_row]
       end
 
-      def filter = @filter
-
-      def capturing_input?
-        @filter_mode
-      end
-
       def bindings
-        if @filter_mode
-          [
-            { key: "Enter", action: "Apply" },
-            { key: "Esc", action: "Cancel" }
-          ]
+        if filter_mode?
+          filter_bindings
         else
           [
             { key: "j/k", action: "Navigate" },
@@ -97,6 +88,10 @@ module SolidQueueTui
             { key: "G/g", action: "Bottom/Top" }
           ]
         end
+      end
+
+      def capturing_input?
+        filter_mode?
       end
 
       def breadcrumb
@@ -122,36 +117,10 @@ module SolidQueueTui
         in { type: :key, code: "G" }
           jump_to_bottom
         in { type: :key, code: "/" }
-          @filter_mode = true
-          @filter_input = @filter || ""
+          enter_filter_mode
           nil
         in { type: :key, code: "esc" }
-          @filter = nil
-          @filter_input = ""
-          :refresh
-        else
-          nil
-        end
-      end
-
-      def handle_filter_input(event)
-        case event
-        in { type: :key, code: "enter" }
-          @filter = @filter_input.empty? ? nil : @filter_input
-          @filter_mode = false
-          @selected_row = 0
-          @table_state.select(0)
-          :refresh
-        in { type: :key, code: "esc" }
-          @filter_mode = false
-          @filter_input = @filter || ""
-          nil
-        in { type: :key, code: "backspace" }
-          @filter_input = @filter_input[0...-1]
-          nil
-        in { type: :key, code: /\A.\z/ => char }
-          @filter_input += char
-          nil
+          clear_filter
         else
           nil
         end
@@ -199,11 +168,9 @@ module SolidQueueTui
           }
         end
 
-        title = @filter ? "Blocked (filter: #{@filter})" : "Blocked"
-
         table = Components::JobTable.new(
           @tui,
-          title: title,
+          title: filter_title("Blocked"),
           columns: columns,
           rows: rows,
           selected_row: @selected_row,
@@ -212,23 +179,6 @@ module SolidQueueTui
         )
 
         table.render(frame, area, @table_state)
-      end
-
-      def render_filter_input(frame, area)
-        frame.render_widget(
-          @tui.paragraph(
-            text: @filter_input + "\u2588",
-            style: @tui.style(fg: :white),
-            block: @tui.block(
-              title: " Filter by class name ",
-              title_style: @tui.style(fg: :yellow),
-              borders: [:all],
-              border_type: :rounded,
-              border_style: @tui.style(fg: :cyan)
-            )
-          ),
-          area
-        )
       end
 
       def format_time(time)
