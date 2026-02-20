@@ -95,7 +95,7 @@ module SolidQueueTui
       end
 
       def breadcrumb
-        @filter ? "blocked:#{@filter}" : "blocked"
+        @filters.empty? ? "blocked" : "blocked:filtered"
       end
 
       private
@@ -175,7 +175,7 @@ module SolidQueueTui
           rows: rows,
           selected_row: @selected_row,
           total_count: @total_count,
-          empty_message: @filter ? "No blocked jobs matching '#{@filter}'" : "No blocked jobs"
+          empty_message: @filters.empty? ? "No blocked jobs" : "No blocked jobs matching filters"
         )
 
         table.render(frame, area, @table_state)

@@ -95,7 +95,7 @@ module SolidQueueTui
       end
 
       def breadcrumb
-        @filter ? "in-progress:#{@filter}" : "in-progress"
+        @filters.empty? ? "in-progress" : "in-progress:filtered"
       end
 
       private
@@ -173,7 +173,7 @@ module SolidQueueTui
           rows: rows,
           selected_row: @selected_row,
           total_count: @total_count,
-          empty_message: @filter ? "No in-progress jobs matching '#{@filter}'" : "No jobs currently in progress"
+          empty_message: @filters.empty? ? "No jobs currently in progress" : "No in-progress jobs matching filters"
         )
 
         table.render(frame, area, @table_state)

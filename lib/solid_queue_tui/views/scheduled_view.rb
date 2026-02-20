@@ -116,7 +116,7 @@ module SolidQueueTui
       end
 
       def breadcrumb
-        @filter ? "scheduled:#{@filter}" : "scheduled"
+        @filters.empty? ? "scheduled" : "scheduled:filtered"
       end
 
       private

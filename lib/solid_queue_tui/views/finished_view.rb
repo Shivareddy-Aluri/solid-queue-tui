@@ -96,7 +96,7 @@ module SolidQueueTui
       end
 
       def breadcrumb
-        @filter ? "finished:#{@filter}" : "finished"
+        @filters.empty? ? "finished" : "finished:filtered"
       end
 
       private
@@ -174,7 +174,7 @@ module SolidQueueTui
           rows: rows,
           selected_row: @selected_row,
           total_count: @total_count,
-          empty_message: @filter ? "No finished jobs matching '#{@filter}'" : "No finished jobs"
+          empty_message: @filters.empty? ? "No finished jobs" : "No finished jobs matching filters"
         )
 
         table.render(frame, area, @table_state)

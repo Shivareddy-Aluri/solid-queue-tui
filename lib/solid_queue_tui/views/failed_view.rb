@@ -116,7 +116,7 @@ module SolidQueueTui
       end
 
       def breadcrumb
-        @filter ? "failed:#{@filter}" : "failed"
+        @filters.empty? ? "failed" : "failed:filtered"
       end
 
       private
