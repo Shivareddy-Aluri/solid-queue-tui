@@ -19,7 +19,8 @@ module SolidQueueTui
         { key: "5", label: "Blocked" },
         { key: "6", label: "Scheduled" },
         { key: "7", label: "Finished" },
-        { key: "8", label: "Workers" }
+        { key: "8", label: "Recurring" },
+        { key: "9", label: "Workers" }
       ].freeze
 
       def initialize(tui, current_view:)

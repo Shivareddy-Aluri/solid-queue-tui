@@ -12,9 +12,10 @@ module SolidQueueTui
     VIEW_BLOCKED     = 4
     VIEW_SCHEDULED   = 5
     VIEW_FINISHED    = 6
-    VIEW_WORKERS     = 7
+    VIEW_RECURRING   = 7
+    VIEW_WORKERS     = 8
 
-    VIEW_COUNT = 8
+    VIEW_COUNT = 9
 
     COMMAND_MAP = {
       "dashboard"   => VIEW_DASHBOARD,
@@ -24,6 +25,7 @@ module SolidQueueTui
       "blocked"     => VIEW_BLOCKED,
       "scheduled"   => VIEW_SCHEDULED,
       "finished"    => VIEW_FINISHED,
+      "recurring"   => VIEW_RECURRING,
       "workers"     => VIEW_WORKERS
     }.freeze
 
@@ -68,6 +70,7 @@ module SolidQueueTui
         VIEW_BLOCKED     => Views::BlockedView.new(@tui),
         VIEW_SCHEDULED   => Views::ScheduledView.new(@tui),
         VIEW_FINISHED    => Views::FinishedView.new(@tui),
+        VIEW_RECURRING   => Views::RecurringTasksView.new(@tui),
         VIEW_WORKERS     => Views::ProcessesView.new(@tui)
       }
       @job_detail = Views::JobDetailView.new(@tui)
@@ -190,6 +193,9 @@ module SolidQueueTui
         switch_view(VIEW_FINISHED)
         return false
       in { type: :key, code: "8" }
+        switch_view(VIEW_RECURRING)
+        return false
+      in { type: :key, code: "9" }
         switch_view(VIEW_WORKERS)
         return false
       in { type: :key, code: "tab" }
@@ -283,6 +289,9 @@ module SolidQueueTui
         current_view.total_count = Data::JobsQuery.count(status: "completed", filter: filter)
         jobs = Data::JobsQuery.fetch(status: "completed", filter: filter, limit: 100, offset: 0)
         current_view.update(jobs: jobs)
+      when VIEW_RECURRING
+        tasks = Data::RecurringTasksQuery.fetch
+        current_view.update(tasks: tasks)
       when VIEW_WORKERS
         processes = Data::ProcessesQuery.fetch
         current_view.update(processes: processes)
@@ -437,7 +446,7 @@ module SolidQueueTui
         ]),
         empty_line,
         help_section("Navigation"),
-        help_line("1-8", "Switch between views"),
+        help_line("1-9", "Switch between views"),
         help_line("Tab", "Next view"),
         help_line("Shift + Tab", "Previous View"),
         help_line(":", "Command mode (:queues, :failed, ...)"),
@@ -463,7 +472,8 @@ module SolidQueueTui
         help_line("5", "Blocked — Concurrency-blocked jobs"),
         help_line("6", "Scheduled — Future scheduled jobs"),
         help_line("7", "Finished — Completed jobs"),
-        help_line("8", "Workers — Active processes"),
+        help_line("8", "Recurring — Recurring tasks"),
+        help_line("9", "Workers — Active processes"),
         empty_line,
         help_section("General"),
         help_line("?", "Toggle this help"),

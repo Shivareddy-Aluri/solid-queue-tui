@@ -8,6 +8,7 @@ require_relative "solid_queue_tui/data/jobs_query"
 require_relative "solid_queue_tui/data/queues_query"
 require_relative "solid_queue_tui/data/processes_query"
 require_relative "solid_queue_tui/data/failed_query"
+require_relative "solid_queue_tui/data/recurring_tasks_query"
 
 # Actions
 require_relative "solid_queue_tui/actions/retry_job"
@@ -15,6 +16,7 @@ require_relative "solid_queue_tui/actions/discard_job"
 require_relative "solid_queue_tui/actions/dispatch_scheduled_job"
 require_relative "solid_queue_tui/actions/discard_scheduled_job"
 require_relative "solid_queue_tui/actions/toggle_queue_pause"
+require_relative "solid_queue_tui/actions/enqueue_recurring_task"
 
 # Components
 require_relative "solid_queue_tui/components/header"
@@ -32,6 +34,7 @@ require_relative "solid_queue_tui/views/in_progress_view"
 require_relative "solid_queue_tui/views/blocked_view"
 require_relative "solid_queue_tui/views/scheduled_view"
 require_relative "solid_queue_tui/views/finished_view"
+require_relative "solid_queue_tui/views/recurring_tasks_view"
 require_relative "solid_queue_tui/views/processes_view"
 require_relative "solid_queue_tui/views/job_detail_view"
 
