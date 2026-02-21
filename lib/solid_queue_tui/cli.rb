@@ -19,7 +19,11 @@ module SolidQueueTui
         opts.separator ""
         opts.separator "Options:"
 
-        opts.on("--dev", "Enable hot-reload (watches lib/ for changes)") do
+        opts.on("--dev", "Enable hot-reload (development only)") do
+          unless defined?(Rails) && Rails.env.development?
+            $stderr.puts "Error: --dev is only allowed in the development environment."
+            exit 1
+          end
           options[:dev] = true
         end
 

@@ -5,7 +5,7 @@ module SolidQueueTui
     class InProgressView
       include Filterable
 
-      SolidQueueTui.page_size = 100
+
       LOAD_THRESHOLD = 10
 
       def initialize(tui)
