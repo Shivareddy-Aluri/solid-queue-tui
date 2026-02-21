@@ -18,6 +18,8 @@ require env_file
 
 # Log ActiveRecord queries to the Rails log file so TUI operations
 # are visible in log/development.log (or whichever environment is active).
+# Tag all TUI logs with [SQTUI] so they're easy to distinguish from app logs.
 ActiveRecord::Base.logger = Rails.logger
+Rails.logger.push_tags("SQTUI") if Rails.logger.respond_to?(:push_tags)
 
 SolidQueueTui::CLI.run(ARGV)

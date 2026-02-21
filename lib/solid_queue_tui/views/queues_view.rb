@@ -20,16 +20,16 @@ module SolidQueueTui
 
       def render(frame, area)
         if @confirm_action
-          content_area, confirm_area = @tui.layout_split(
+          confirm_area, content_area = @tui.layout_split(
             area,
             direction: :vertical,
             constraints: [
-              @tui.constraint_fill(1),
-              @tui.constraint_length(3)
+              @tui.constraint_length(3),
+              @tui.constraint_fill(1)
             ]
           )
-          render_table(frame, content_area)
           render_confirm(frame, confirm_area)
+          render_table(frame, content_area)
         else
           render_table(frame, area)
         end

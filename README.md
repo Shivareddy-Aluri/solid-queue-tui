@@ -80,6 +80,10 @@ Press `1`-`8` to switch between views:
 | `r` | Refresh |
 | `q` | Quit |
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, debugging tips, and architecture overview.
+
 ## License
 
 MIT
