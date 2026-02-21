@@ -173,7 +173,8 @@ module SolidQueueTui
             Actions::DiscardJob.call(item.id)
             :refresh
           when :retry_all
-            Actions::RetryJob.retry_all
+            f = filters
+            Actions::RetryJob.retry_all(filter: f[:class_name], queue: f[:queue])
             :refresh
           end
         in { type: :key, code: "n" } | { type: :key, code: "esc" }
@@ -246,7 +247,9 @@ module SolidQueueTui
                     job = selected_item
                     "Discard job ##{job&.job_id} (#{job&.class_name})? This cannot be undone. [y/n]"
                   when :retry_all
-                    "Retry ALL #{@failed_jobs.size} failed jobs? [y/n]"
+                    count = @total_count || @failed_jobs.size
+                    label = @filters.empty? ? "failed jobs" : "filtered failed jobs"
+                    "Retry ALL #{count} #{label}? [y/n]"
                   end
 
         frame.render_widget(

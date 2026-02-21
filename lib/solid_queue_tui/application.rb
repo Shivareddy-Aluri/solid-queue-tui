@@ -255,11 +255,11 @@ module SolidQueueTui
     end
 
     def refresh_data!
-      @stats = Data::Stats.fetch
       @last_refresh = Time.now
 
       case @current_view
       when VIEW_DASHBOARD
+        @stats = Data::Stats.fetch
         current_view.update(stats: @stats)
       when VIEW_QUEUES
         queues = Data::QueuesQuery.fetch
@@ -297,7 +297,7 @@ module SolidQueueTui
         current_view.update(processes: processes)
       end
     rescue => e
-      # Silently handle refresh errors to keep TUI responsive
+      Rails.logger.tagged("SQTUI") { Rails.logger.error("refresh_data! error: #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}") } if defined?(Rails) && Rails.logger
     end
 
     def load_more_data!
@@ -327,7 +327,7 @@ module SolidQueueTui
         view.append(jobs: more)
       end
     rescue => e
-      # Silently handle load errors
+      Rails.logger.tagged("SQTUI") { Rails.logger.error("load_more_data! error: #{e.class}: #{e.message}") } if defined?(Rails) && Rails.logger
     end
 
     def setup_dev_reloader!

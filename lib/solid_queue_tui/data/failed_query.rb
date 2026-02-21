@@ -18,6 +18,7 @@ module SolidQueueTui
 
         scope.map { |fe| build_failed_job(fe) }
       rescue => e
+        Rails.logger.tagged("SQTUI") { Rails.logger.error("FailedQuery.fetch error: #{e.class}: #{e.message}") } if defined?(Rails) && Rails.logger
         []
       end
 
@@ -27,6 +28,7 @@ module SolidQueueTui
         scope = scope.merge(SolidQueue::Job.where(queue_name: queue)) if queue.present?
         scope.count
       rescue => e
+        Rails.logger.tagged("SQTUI") { Rails.logger.error("FailedQuery.count error: #{e.class}: #{e.message}") } if defined?(Rails) && Rails.logger
         0
       end
 
