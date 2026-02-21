@@ -5,7 +5,7 @@ module SolidQueueTui
     class FailedView
       include Filterable
 
-      PAGE_SIZE = 100
+      SolidQueueTui.page_size = 100
       LOAD_THRESHOLD = 10
 
       def initialize(tui)
@@ -22,14 +22,14 @@ module SolidQueueTui
 
       def update(failed_jobs:)
         @failed_jobs = failed_jobs
-        @all_loaded = failed_jobs.size < PAGE_SIZE
+        @all_loaded = failed_jobs.size < SolidQueueTui.page_size
         @selected_row = @selected_row.clamp(0, [@failed_jobs.size - 1, 0].max)
         @table_state.select(@selected_row)
       end
 
       def append(failed_jobs:)
         @failed_jobs.concat(failed_jobs)
-        @all_loaded = failed_jobs.size < PAGE_SIZE
+        @all_loaded = failed_jobs.size < SolidQueueTui.page_size
       end
 
       def total_count=(count)

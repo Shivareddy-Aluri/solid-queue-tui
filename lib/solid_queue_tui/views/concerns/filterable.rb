@@ -94,7 +94,7 @@ module SolidQueueTui
               title_style: @tui.style(fg: :yellow),
               titles: [
                 { content: " Tab: next field \u2502 Enter: apply \u2502 Esc: cancel ",
-                  position: :bottom, alignment: :center }
+                  position: :top, alignment: :right }
               ],
               borders: [:all],
               border_type: :rounded,

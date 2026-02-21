@@ -45,40 +45,27 @@ bundle exec rake solid_queue_tui:start
 
 ### Configuration
 
-The refresh interval defaults to 2 seconds. You can customize it in an initializer:
+Configure via CLI flags:
+
+```bash
+bundle exec sqtui --page-size 50 --refresh-interval 5
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--page-size N` | `100` | Number of rows loaded per page |
+| `--refresh-interval N` | `2` | Auto-refresh interval in seconds |
+
+Or via a Rails initializer:
 
 ```ruby
 # config/initializers/solid_queue_tui.rb
+SolidQueueTui.page_size = 50
 SolidQueueTui.refresh_interval = 5
 ```
 
-## Views
+CLI flags take precedence over initializer values.
 
-Press `1`-`8` to switch between views:
-
-| Key | View | Description |
-|-----|------|-------------|
-| `1` | Dashboard | Overview with job counts and process info |
-| `2` | Queues | Per-queue breakdown with sizes |
-| `3` | Failed | Failed jobs — retry or discard |
-| `4` | In Progress | Jobs currently being processed |
-| `5` | Blocked | Jobs blocked by concurrency limits |
-| `6` | Scheduled | Jobs scheduled for future execution |
-| `7` | Finished | Completed jobs |
-| `8` | Workers | Active worker processes |
-
-## Key Bindings
-
-| Key | Action |
-|-----|--------|
-| `j` / `k` | Navigate up / down |
-| `Enter` | View job details |
-| `/` | Filter by class name |
-| `R` | Retry failed job |
-| `D` | Discard failed job |
-| `Esc` | Back to Dashboard |
-| `r` | Refresh |
-| `q` | Quit |
 
 ## Contributing
 

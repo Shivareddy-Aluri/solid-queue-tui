@@ -47,9 +47,10 @@ require_relative "solid_queue_tui/cli"
 
 module SolidQueueTui
   @refresh_interval = 200
+  @page_size = 100
 
   class << self
-    attr_accessor :refresh_interval
+    attr_accessor :refresh_interval, :page_size
   end
 end
 

@@ -23,6 +23,14 @@ module SolidQueueTui
           options[:dev] = true
         end
 
+        opts.on("--page-size N", Integer, "Number of rows per page (default: #{SolidQueueTui.page_size})") do |n|
+          SolidQueueTui.page_size = n
+        end
+
+        opts.on("--refresh-interval N", Integer, "Refresh interval in seconds (default: #{SolidQueueTui.refresh_interval})") do |n|
+          SolidQueueTui.refresh_interval = n
+        end
+
         opts.on("-v", "--version", "Show version") do
           puts "sqtui v#{SolidQueueTui::VERSION}"
           exit

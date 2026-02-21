@@ -5,7 +5,7 @@ module SolidQueueTui
     class BlockedView
       include Filterable
 
-      PAGE_SIZE = 100
+      SolidQueueTui.page_size = 100
       LOAD_THRESHOLD = 10
 
       def initialize(tui)
@@ -21,14 +21,14 @@ module SolidQueueTui
 
       def update(jobs:)
         @jobs = jobs
-        @all_loaded = jobs.size < PAGE_SIZE
+        @all_loaded = jobs.size < SolidQueueTui.page_size
         @selected_row = @selected_row.clamp(0, [@jobs.size - 1, 0].max)
         @table_state.select(@selected_row)
       end
 
       def append(jobs:)
         @jobs.concat(jobs)
-        @all_loaded = jobs.size < PAGE_SIZE
+        @all_loaded = jobs.size < SolidQueueTui.page_size
       end
 
       def total_count=(count)

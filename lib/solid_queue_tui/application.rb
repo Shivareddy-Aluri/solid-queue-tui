@@ -267,27 +267,27 @@ module SolidQueueTui
       when VIEW_FAILED
         f = current_view.filters
         current_view.total_count = Data::FailedQuery.count(filter: f[:class_name], queue: f[:queue])
-        failed_jobs = Data::FailedQuery.fetch(filter: f[:class_name], queue: f[:queue], limit: 100, offset: 0)
+        failed_jobs = Data::FailedQuery.fetch(filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: 0)
         current_view.update(failed_jobs: failed_jobs)
       when VIEW_IN_PROGRESS
         f = current_view.filters
         current_view.total_count = Data::JobsQuery.count(status: "claimed", filter: f[:class_name], queue: f[:queue])
-        jobs = Data::JobsQuery.fetch(status: "claimed", filter: f[:class_name], queue: f[:queue], limit: 100, offset: 0)
+        jobs = Data::JobsQuery.fetch(status: "claimed", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_BLOCKED
         f = current_view.filters
         current_view.total_count = Data::JobsQuery.count(status: "blocked", filter: f[:class_name], queue: f[:queue])
-        jobs = Data::JobsQuery.fetch(status: "blocked", filter: f[:class_name], queue: f[:queue], limit: 100, offset: 0)
+        jobs = Data::JobsQuery.fetch(status: "blocked", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_SCHEDULED
         f = current_view.filters
         current_view.total_count = Data::JobsQuery.count(status: "scheduled", filter: f[:class_name], queue: f[:queue])
-        jobs = Data::JobsQuery.fetch(status: "scheduled", filter: f[:class_name], queue: f[:queue], limit: 100, offset: 0)
+        jobs = Data::JobsQuery.fetch(status: "scheduled", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_FINISHED
         f = current_view.filters
         current_view.total_count = Data::JobsQuery.count(status: "completed", filter: f[:class_name], queue: f[:queue])
-        jobs = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], limit: 100, offset: 0)
+        jobs = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_RECURRING
         tasks = Data::RecurringTasksQuery.fetch
@@ -307,23 +307,23 @@ module SolidQueueTui
       case @current_view
       when VIEW_FAILED
         f = view.filters
-        more = Data::FailedQuery.fetch(filter: f[:class_name], queue: f[:queue], limit: 100, offset: offset)
+        more = Data::FailedQuery.fetch(filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: offset)
         view.append(failed_jobs: more)
       when VIEW_IN_PROGRESS
         f = view.filters
-        more = Data::JobsQuery.fetch(status: "claimed", filter: f[:class_name], queue: f[:queue], limit: 100, offset: offset)
+        more = Data::JobsQuery.fetch(status: "claimed", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: offset)
         view.append(jobs: more)
       when VIEW_BLOCKED
         f = view.filters
-        more = Data::JobsQuery.fetch(status: "blocked", filter: f[:class_name], queue: f[:queue], limit: 100, offset: offset)
+        more = Data::JobsQuery.fetch(status: "blocked", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: offset)
         view.append(jobs: more)
       when VIEW_SCHEDULED
         f = view.filters
-        more = Data::JobsQuery.fetch(status: "scheduled", filter: f[:class_name], queue: f[:queue], limit: 100, offset: offset)
+        more = Data::JobsQuery.fetch(status: "scheduled", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: offset)
         view.append(jobs: more)
       when VIEW_FINISHED
         f = view.filters
-        more = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], limit: 100, offset: offset)
+        more = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: offset)
         view.append(jobs: more)
       end
     rescue => e
