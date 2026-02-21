@@ -19,6 +19,27 @@ cd test/dummy_app
 bundle exec sqtui --dev
 ```
 
+## Seeding test data
+
+A seed script is included to populate large datasets for performance testing:
+
+```bash
+cd test/dummy_app
+bin/rails db:seed
+```
+
+This creates **100,000 rows per view** (failed, scheduled, in-progress, blocked, finished) plus 5 recurring tasks. Override the count with `SEED_COUNT`:
+
+```bash
+SEED_COUNT=1000000 bin/rails db:seed
+```
+
+To wipe everything and re-seed from scratch:
+
+```bash
+bin/rails db:seed:replant
+```
+
 ## Logging & debugging
 
 The TUI is a separate process from your Rails server, but it boots the full Rails environment (`config/environment.rb`) and shares the same database. ActiveRecord queries are logged to the Rails log file automatically.
