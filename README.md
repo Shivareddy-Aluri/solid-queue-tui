@@ -67,6 +67,23 @@ SolidQueueTui.refresh_interval = 5
 CLI flags take precedence over initializer values.
 
 
+## Platform notes
+
+`ratatui_ruby` ships precompiled binaries for **macOS (ARM)**, **Linux (x86_64)**, and **Windows**. On these platforms, `bundle install` works out of the box.
+
+On **ARM Linux** (e.g., Docker on Apple Silicon, AWS Graviton), there is no precompiled binary yet — Bundler will compile from source, which requires the **Rust toolchain** in your build environment:
+
+```dockerfile
+# Example: adding Rust to a Dockerfile for ARM Linux builds
+# Install packages needed to build gems and Rust/clang toolchain for native extensions (ratatui_ruby)
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential git libpq-dev libyaml-dev pkg-config curl libclang-dev && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, debugging tips, and architecture overview.
