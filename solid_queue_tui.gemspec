@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
                      "Built with ratatui_ruby for native Rust rendering performance."
   spec.homepage = "https://github.com/shivareddy-Aluri/solid-queue-tui"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2.0"
+  spec.required_ruby_version = ">= 3.2.9"
 
   spec.files = Dir["lib/**/*", "exe/*", "LICENSE.txt"]
   spec.bindir = "exe"

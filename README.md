@@ -9,7 +9,7 @@ A terminal UI dashboard for [Solid Queue](https://github.com/rails/solid_queue),
 ## Requirements
 
 - A **Rails application** (7.1+) with [Solid Queue](https://github.com/rails/solid_queue) configured as the Active Job backend
-- Ruby 3.2+
+- Ruby 3.2.9+
 
 This gem is a Rails Railtie. It uses the host app's existing database connection and Solid Queue's ActiveRecord models directly — no separate database configuration is needed.
 

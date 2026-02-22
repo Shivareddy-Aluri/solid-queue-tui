@@ -19,7 +19,24 @@ require env_file
 # Log ActiveRecord queries to the Rails log file so TUI operations
 # are visible in log/development.log (or whichever environment is active).
 # Tag all TUI logs with [SQTUI] so they're easy to distinguish from app logs.
-ActiveRecord::Base.logger = Rails.logger
-Rails.logger.push_tags("SQTUI") if Rails.logger.respond_to?(:push_tags)
+# CORRUPTING TERMINAL
+# ActiveRecord::Base.logger = Rails.logger
+# Rails.logger.push_tags("SQTUI") if Rails.logger.respond_to?(:push_tags)
+
+# Logs must never hit STDOUT/STDERR — that would corrupt the TUI.
+# If a log/ directory exists (traditional Rails), write there.
+# Otherwise (Rails 8 defaults), silence logging.
+#TODO: figure out logging for rails 8, docker
+
+log_dir = File.join(Dir.pwd, "log")
+if Dir.exist?(log_dir)
+  log_file = File.join(log_dir, "#{Rails.env}.log")
+  tui_logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(log_file))
+  tui_logger.push_tags("SQTUI")
+else
+  tui_logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(File::NULL))
+end
+ActiveRecord::Base.logger = tui_logger
+Rails.logger = tui_logger
 
 SolidQueueTui::CLI.run(ARGV)
