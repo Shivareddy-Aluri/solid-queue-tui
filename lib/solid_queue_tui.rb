@@ -18,6 +18,9 @@ require_relative "solid_queue_tui/actions/discard_scheduled_job"
 require_relative "solid_queue_tui/actions/toggle_queue_pause"
 require_relative "solid_queue_tui/actions/enqueue_recurring_task"
 
+# Utilities
+require_relative "solid_queue_tui/clipboard"
+
 # Components
 require_relative "solid_queue_tui/components/header"
 require_relative "solid_queue_tui/components/job_table"

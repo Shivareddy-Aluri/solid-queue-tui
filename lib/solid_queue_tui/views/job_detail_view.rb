@@ -3,12 +3,16 @@
 module SolidQueueTui
   module Views
     class JobDetailView
+      PANE_ERROR = 0
+      PANE_INFO  = 1
+
       def initialize(tui)
         @tui = tui
         @job = nil
         @failed_job = nil
         @scroll_offset = 0
         @confirm_action = nil
+        @active_pane = PANE_ERROR
       end
 
       def show(job: nil, failed_job: nil)
@@ -16,6 +20,7 @@ module SolidQueueTui
         @failed_job = failed_job
         @scroll_offset = 0
         @confirm_action = nil
+        @active_pane = PANE_ERROR
         @active = true
       end
 
@@ -68,6 +73,8 @@ module SolidQueueTui
           ]
           if @failed_job
             b += [
+              { key: "Tab", action: "Switch Pane" },
+              { key: "c", action: "Copy Pane" },
               { key: "R", action: "Retry" },
               { key: "D", action: "Discard" }
             ]
@@ -78,7 +85,8 @@ module SolidQueueTui
 
       def breadcrumb
         if @failed_job
-          "failed:#{@failed_job.job_id}"
+          pane = @active_pane == PANE_ERROR ? "error" : "info"
+          "failed:#{@failed_job.job_id}:#{pane}"
         elsif @job
           "jobs:#{@job.id}"
         else
@@ -98,6 +106,12 @@ module SolidQueueTui
           nil
         in { type: :key, code: "k" } | { type: :key, code: "down" }
           @scroll_offset += 1
+          nil
+        in { type: :key, code: "tab" } | { type: :key, code: "back_tab" }
+          toggle_pane if @failed_job
+          nil
+        in { type: :key, code: "c" }
+          copy_active_pane if @failed_job
           nil
         in { type: :key, code: "R" }
           @confirm_action = :retry if @failed_job
@@ -131,6 +145,48 @@ module SolidQueueTui
         else
           nil
         end
+      end
+
+      def toggle_pane
+        @active_pane = @active_pane == PANE_ERROR ? PANE_INFO : PANE_ERROR
+      end
+
+      def copy_active_pane
+        text = if @active_pane == PANE_ERROR
+                 error_pane_text
+               else
+                 info_pane_text
+               end
+        Clipboard.copy(text)
+      end
+
+      def error_pane_text
+        lines = []
+        lines << "Exception: #{@failed_job.error_class}"
+        lines << "Message: #{@failed_job.error_message}"
+        if @failed_job.backtrace.is_a?(Array)
+          lines << ""
+          lines << "Backtrace:"
+          @failed_job.backtrace.each { |bt| lines << "  #{bt}" }
+        end
+        lines.join("\n")
+      end
+
+      def info_pane_text
+        lines = []
+        lines << "Job ID: #{@failed_job.job_id}"
+        lines << "Active Job ID: #{@failed_job.active_job_id || "n/a"}"
+        lines << "Class: #{@failed_job.class_name}"
+        lines << "Queue: #{@failed_job.queue_name}"
+        lines << "Priority: #{@failed_job.priority}"
+        lines << "Created At: #{format_time(@failed_job.created_at)}"
+        lines << "Failed At: #{format_time(@failed_job.failed_at)}"
+        if @failed_job.arguments.is_a?(Hash) || @failed_job.arguments.is_a?(Array)
+          lines << ""
+          lines << "Arguments:"
+          lines << (JSON.pretty_generate(@failed_job.arguments) rescue @failed_job.arguments.to_s)
+        end
+        lines.join("\n")
       end
 
       def render_confirm(frame, area)
@@ -167,6 +223,9 @@ module SolidQueueTui
           ]
         )
 
+        left_active = @active_pane == PANE_ERROR
+        right_active = @active_pane == PANE_INFO
+
         # Left pane: Error details + backtrace
         error_lines = []
         error_lines << section_header("Exception")
@@ -184,16 +243,17 @@ module SolidQueueTui
         end
 
         visible_error_lines = error_lines.drop(@scroll_offset)
+        left_border_color = left_active ? :red : :dark_gray
 
         frame.render_widget(
           @tui.paragraph(
             text: visible_error_lines,
             block: @tui.block(
               title: " Error Details ",
-              title_style: @tui.style(fg: :red, modifiers: [:bold]),
+              title_style: @tui.style(fg: left_active ? :red : :dark_gray, modifiers: left_active ? [:bold] : []),
               borders: [:all],
               border_type: :rounded,
-              border_style: @tui.style(fg: :red),
+              border_style: @tui.style(fg: left_border_color),
               style: @tui.style(fg: :white)
             )
           ),
@@ -222,19 +282,21 @@ module SolidQueueTui
           end
         end
 
+        right_border_color = right_active ? :cyan : :dark_gray
+
         frame.render_widget(
           @tui.paragraph(
             text: info_lines,
             block: @tui.block(
-              title: " Job ##{@failed_job.job_id} — #{@failed_job.class_name} ",
-              title_style: @tui.style(fg: :cyan, modifiers: [:bold]),
+              title: " Job Info ",
+              title_style: @tui.style(fg: right_active ? :cyan : :dark_gray, modifiers: right_active ? [:bold] : []),
               titles: [
                 { content: " Esc:Close  R:Retry  D:Discard ",
                   position: :bottom, alignment: :right }
               ],
               borders: [:all],
               border_type: :rounded,
-              border_style: @tui.style(fg: :cyan),
+              border_style: @tui.style(fg: right_border_color),
               style: @tui.style(fg: :white)
             )
           ),
