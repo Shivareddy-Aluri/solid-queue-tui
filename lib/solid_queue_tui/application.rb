@@ -143,10 +143,17 @@ module SolidQueueTui
         return false
       end
 
-      # If view is in a modal state (filter, confirm), it gets all input
+      # If view is in a modal state (filter, confirm, detail sub-view), it gets all input
       if current_view.respond_to?(:capturing_input?) && current_view.capturing_input?
         result = current_view.handle_input(event)
-        refresh_data! if result == :refresh
+        case result
+        when :refresh, :enter_queue, :exit_queue
+          refresh_data!
+        when :load_more
+          load_more_data!
+        when :open_detail
+          open_detail
+        end
         return false
       end
 
@@ -241,6 +248,13 @@ module SolidQueueTui
       return unless item
 
       case @current_view
+      when VIEW_QUEUES
+        if current_view.detail_mode?
+          @job_detail.show(job: item) if item.respond_to?(:id)
+        else
+          result = current_view.handle_input({ type: :key, code: "enter" })
+          refresh_data! if result == :enter_queue
+        end
       when VIEW_FAILED
         failed_job = Data::FailedQuery.fetch_one(item.id) if item.respond_to?(:id)
         @job_detail.show(failed_job: failed_job || item)
@@ -262,8 +276,16 @@ module SolidQueueTui
         @stats = Data::Stats.fetch
         current_view.update(stats: @stats)
       when VIEW_QUEUES
-        queues = Data::QueuesQuery.fetch
-        current_view.update(queues: queues)
+        if current_view.detail_mode?
+          q = current_view.selected_queue_name
+          f = current_view.filters
+          current_view.total_count = Data::JobsQuery.count_pending(queue: q, filter: f[:class_name])
+          jobs = Data::JobsQuery.fetch_pending(queue: q, filter: f[:class_name], limit: SolidQueueTui.page_size, offset: 0)
+          current_view.update_detail(jobs: jobs)
+        else
+          queues = Data::QueuesQuery.fetch
+          current_view.update(queues: queues)
+        end
       when VIEW_FAILED
         f = current_view.filters
         current_view.total_count = Data::FailedQuery.count(filter: f[:class_name], queue: f[:queue])
@@ -305,6 +327,13 @@ module SolidQueueTui
       offset = view.current_offset
 
       case @current_view
+      when VIEW_QUEUES
+        if view.detail_mode?
+          q = view.selected_queue_name
+          f = view.filters
+          more = Data::JobsQuery.fetch_pending(queue: q, filter: f[:class_name], limit: SolidQueueTui.page_size, offset: offset)
+          view.append(jobs: more)
+        end
       when VIEW_FAILED
         f = view.filters
         more = Data::FailedQuery.fetch(filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: offset)

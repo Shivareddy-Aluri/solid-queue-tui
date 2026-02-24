@@ -13,6 +13,7 @@ module SolidQueueTui
 
       def self.fetch(status:, filter: nil, queue: nil, limit: 100, offset: 0)
         case status
+        when "pending"   then fetch_pending(queue: queue, filter: filter, limit: limit, offset: offset)
         when "claimed"   then fetch_claimed(filter: filter, queue: queue, limit: limit, offset: offset)
         when "blocked"   then fetch_blocked(filter: filter, queue: queue, limit: limit, offset: offset)
         when "scheduled" then fetch_scheduled(filter: filter, queue: queue, limit: limit, offset: offset)
@@ -25,6 +26,7 @@ module SolidQueueTui
 
       def self.count(status:, filter: nil, queue: nil)
         case status
+        when "pending"   then count_pending(queue: queue, filter: filter)
         when "claimed"   then count_scope(SolidQueue::ClaimedExecution.joins(:job), filter: filter, queue: queue)
         when "blocked"   then count_scope(SolidQueue::BlockedExecution.joins(:job), filter: filter, queue: queue)
         when "scheduled" then count_scope(SolidQueue::ScheduledExecution.joins(:job), filter: filter, queue: queue)
@@ -33,6 +35,35 @@ module SolidQueueTui
         end
       rescue => e
         0
+      end
+
+      def self.fetch_pending(queue:, filter: nil, limit: 100, offset: 0)
+        scope = SolidQueue::ReadyExecution.joins(:job)
+        scope = scope.where(queue_name: queue) if queue
+        scope = apply_class_name_filter(scope, filter)
+        scope = scope.order(priority: :asc, job_id: :asc).offset(offset).limit(limit)
+
+        scope.includes(:job).map do |re|
+          job = re.job
+          Job.new(
+            id: job.id,
+            queue_name: job.queue_name,
+            class_name: job.class_name,
+            priority: job.priority,
+            status: "pending",
+            active_job_id: job.active_job_id,
+            arguments: job.arguments,
+            scheduled_at: job.scheduled_at,
+            created_at: job.created_at
+          )
+        end
+      end
+
+      def self.count_pending(queue:, filter: nil)
+        scope = SolidQueue::ReadyExecution.joins(:job)
+        scope = scope.where(queue_name: queue) if queue
+        scope = apply_class_name_filter(scope, filter)
+        scope.count
       end
 
       def self.fetch_claimed(filter: nil, queue: nil, limit: 100, offset: 0)
