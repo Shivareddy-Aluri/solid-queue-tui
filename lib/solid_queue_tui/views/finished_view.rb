@@ -5,6 +5,7 @@ module SolidQueueTui
     class FinishedView
       include Filterable
       include Paginatable
+      include FormattingHelpers
 
       def initialize(tui)
         @tui = tui
@@ -108,7 +109,7 @@ module SolidQueueTui
             class_name: job.class_name,
             priority: job.priority,
             finished_at: format_time(job.finished_at),
-            duration: format_duration(job.created_at, job.finished_at)
+            duration: job_duration(job.created_at, job.finished_at)
           }
         end
 
@@ -125,23 +126,9 @@ module SolidQueueTui
         table.render(frame, area, @table_state)
       end
 
-      def format_time(time)
-        return "n/a" unless time
-        time.strftime("%Y-%m-%d %H:%M:%S")
-      end
-
-      def format_duration(created, finished)
+      def job_duration(created, finished)
         return "n/a" unless created && finished
-        seconds = (finished - created).to_i
-        if seconds < 1
-          "<1s"
-        elsif seconds < 60
-          "#{seconds}s"
-        elsif seconds < 3600
-          "#{seconds / 60}m #{seconds % 60}s"
-        else
-          "#{seconds / 3600}h #{(seconds % 3600) / 60}m"
-        end
+        format_duration((finished - created).to_i)
       end
     end
   end

@@ -3,6 +3,8 @@
 module SolidQueueTui
   module Views
     class DashboardView
+      include FormattingHelpers
+
       def initialize(tui)
         @tui = tui
         @selected_row = 0
@@ -179,10 +181,6 @@ module SolidQueueTui
         ])
       end
 
-      def format_number(n)
-        return "0" if n.nil? || n == 0
-        n.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
-      end
     end
   end
 end
