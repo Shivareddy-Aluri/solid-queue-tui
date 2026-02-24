@@ -6,6 +6,7 @@ module SolidQueueTui
       include Filterable
       include Confirmable
       include Paginatable
+      include FormattingHelpers
 
       def initialize(tui)
         @tui = tui
@@ -171,21 +172,6 @@ module SolidQueueTui
         table.render(frame, area, @table_state)
       end
 
-      def format_time(time)
-        return "n/a" unless time
-        time.strftime("%Y-%m-%d %H:%M:%S")
-      end
-
-      def time_ago(time)
-        return "n/a" unless time
-        seconds = (Time.now.utc - time).to_i
-        case seconds
-        when 0..59       then "#{seconds}s ago"
-        when 60..3599    then "#{seconds / 60}m ago"
-        when 3600..86399 then "#{seconds / 3600}h ago"
-        else "#{seconds / 86400}d ago"
-        end
-      end
     end
   end
 end

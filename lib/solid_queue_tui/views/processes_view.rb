@@ -3,6 +3,8 @@
 module SolidQueueTui
   module Views
     class ProcessesView
+      include FormattingHelpers
+
       KIND_COLORS = {
         "Worker" => :green,
         "Dispatcher" => :yellow,
@@ -113,30 +115,6 @@ module SolidQueueTui
         @table_state.select(@selected_row)
       end
 
-      def time_ago(time)
-        return "n/a" unless time
-        seconds = (Time.now.utc - time).to_i
-        case seconds
-        when 0..59       then "#{seconds}s ago"
-        when 60..3599    then "#{seconds / 60}m ago"
-        when 3600..86399 then "#{seconds / 3600}h ago"
-        else "#{seconds / 86400}d ago"
-        end
-      end
-
-      def format_duration(seconds)
-        return "n/a" unless seconds
-        seconds = seconds.to_i
-        if seconds < 60
-          "#{seconds}s"
-        elsif seconds < 3600
-          "#{seconds / 60}m #{seconds % 60}s"
-        elsif seconds < 86400
-          "#{seconds / 3600}h #{(seconds % 3600) / 60}m"
-        else
-          "#{seconds / 86400}d #{(seconds % 86400) / 3600}h"
-        end
-      end
     end
   end
 end

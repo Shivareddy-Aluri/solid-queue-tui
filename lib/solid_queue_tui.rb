@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "solid_queue_tui/version"
+require_relative "solid_queue_tui/formatting_helpers"
 
 # Data layer
 require_relative "solid_queue_tui/data/stats"

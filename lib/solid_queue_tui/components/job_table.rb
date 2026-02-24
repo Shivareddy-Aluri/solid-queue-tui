@@ -3,6 +3,8 @@
 module SolidQueueTui
   module Components
     class JobTable
+      include FormattingHelpers
+
       STATUS_COLORS = {
         "ready" => :green,
         "claimed" => :yellow,
@@ -49,9 +51,6 @@ module SolidQueueTui
         text + " "
       end
 
-      def format_number(n)
-        n.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse
-      end
 
       def render_table(frame, area, table_state)
         widths = @columns.map do |col|

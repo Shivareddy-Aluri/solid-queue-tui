@@ -4,6 +4,7 @@ module SolidQueueTui
   module Views
     class JobDetailView
       include Confirmable
+      include FormattingHelpers
 
       def initialize(tui)
         @tui = tui
@@ -259,6 +260,7 @@ module SolidQueueTui
         ])
       end
 
+      # Override: includes UTC suffix for detail view precision
       def format_time(time)
         return "n/a" unless time
         time.strftime("%Y-%m-%d %H:%M:%S UTC")

@@ -4,6 +4,7 @@ module SolidQueueTui
   module Views
     class RecurringTasksView
       include Confirmable
+      include FormattingHelpers
 
       def initialize(tui)
         @tui = tui
@@ -142,27 +143,12 @@ module SolidQueueTui
         table.render(frame, area, @table_state)
       end
 
+      # Override: returns "Never" for nil and "just now" for very recent
       def time_ago(time)
         return "Never" unless time
         seconds = (Time.now.utc - time).to_i
         return "just now" if seconds < 5
         "#{humanize_duration(seconds)} ago"
-      end
-
-      def time_until(time)
-        return "n/a" unless time
-        seconds = (time - Time.now.utc).to_i
-        return "now" if seconds <= 0
-        "in #{humanize_duration(seconds)}"
-      end
-
-      def humanize_duration(seconds)
-        case seconds.abs
-        when 0..59       then "#{seconds.abs}s"
-        when 60..3599    then "#{seconds.abs / 60}m"
-        when 3600..86399 then "#{seconds.abs / 3600}h"
-        else "#{seconds.abs / 86400}d"
-        end
       end
     end
   end
