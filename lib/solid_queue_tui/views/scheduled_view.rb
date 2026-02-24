@@ -4,6 +4,7 @@ module SolidQueueTui
   module Views
     class ScheduledView
       include Filterable
+      include Confirmable
 
 
       LOAD_THRESHOLD = 10
@@ -16,7 +17,7 @@ module SolidQueueTui
         @jobs = []
         @total_count = nil
         @all_loaded = false
-        @confirm_action = nil
+        init_confirm
         init_filter
       end
 
@@ -49,14 +50,9 @@ module SolidQueueTui
       end
 
       def render(frame, area)
-        if @confirm_action
+        if confirm_mode?
           render_table(frame, area)
-          popup_area = area.centered(
-            @tui.constraint_percentage(50),
-            @tui.constraint_length(5)
-          )
-          frame.render_widget(@tui.clear(), popup_area)
-          render_confirm(frame, popup_area)
+          render_confirm_popup(frame, area)
         elsif filter_mode?
           filter_area, content_area = @tui.layout_split(
             area,
@@ -74,7 +70,7 @@ module SolidQueueTui
       end
 
       def handle_input(event)
-        if @confirm_action
+        if confirm_mode?
           handle_confirm_input(event)
         elsif filter_mode?
           handle_filter_input(event)
@@ -89,15 +85,12 @@ module SolidQueueTui
       end
 
       def capturing_input?
-        filter_mode? || @confirm_action
+        filter_mode? || confirm_mode?
       end
 
       def bindings
-        if @confirm_action
-          [
-            { key: "y", action: "Confirm" },
-            { key: "n/Esc", action: "Cancel" }
-          ]
+        if confirm_mode?
+          confirm_bindings
         elsif filter_mode?
           filter_bindings
         else
@@ -150,28 +143,29 @@ module SolidQueueTui
         end
       end
 
-      def handle_confirm_input(event)
-        case event
-        in { type: :key, code: "y" }
-          action = @confirm_action
-          @confirm_action = nil
-          case action
-          when :run_now
-            item = selected_item
-            return nil unless item
-            Actions::DispatchScheduledJob.call(item.id)
-            :refresh
-          when :discard
-            item = selected_item
-            return nil unless item
-            Actions::DiscardScheduledJob.call(item.id)
-            :refresh
-          end
-        in { type: :key, code: "n" } | { type: :key, code: "esc" }
-          @confirm_action = nil
-          nil
-        else
-          nil
+      def confirm_message
+        case @confirm_action
+        when :run_now
+          job = selected_item
+          "Run job ##{job&.id} (#{job&.class_name}) now? [y/n]"
+        when :discard
+          job = selected_item
+          "Discard job ##{job&.id} (#{job&.class_name})? This cannot be undone. [y/n]"
+        end
+      end
+
+      def execute_confirm_action(action)
+        case action
+        when :run_now
+          item = selected_item
+          return nil unless item
+          Actions::DispatchScheduledJob.call(item.id)
+          :refresh
+        when :discard
+          item = selected_item
+          return nil unless item
+          Actions::DiscardScheduledJob.call(item.id)
+          :refresh
         end
       end
 
@@ -230,32 +224,6 @@ module SolidQueueTui
         )
 
         table.render(frame, area, @table_state)
-      end
-
-      def render_confirm(frame, area)
-        message = case @confirm_action
-                  when :run_now
-                    job = selected_item
-                    "Run job ##{job&.id} (#{job&.class_name}) now? [y/n]"
-                  when :discard
-                    job = selected_item
-                    "Discard job ##{job&.id} (#{job&.class_name})? This cannot be undone. [y/n]"
-                  end
-
-        frame.render_widget(
-          @tui.paragraph(
-            text: " #{message}",
-            style: @tui.style(fg: :yellow, modifiers: [:bold]),
-            block: @tui.block(
-              title: " Confirm ",
-              title_style: @tui.style(fg: :red, modifiers: [:bold]),
-              borders: [:all],
-              border_type: :rounded,
-              border_style: @tui.style(fg: :red)
-            )
-          ),
-          area
-        )
       end
 
       def format_time(time)

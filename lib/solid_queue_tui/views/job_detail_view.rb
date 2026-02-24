@@ -3,12 +3,14 @@
 module SolidQueueTui
   module Views
     class JobDetailView
+      include Confirmable
+
       def initialize(tui)
         @tui = tui
         @job = nil
         @failed_job = nil
         @scroll_offset = 0
-        @confirm_action = nil
+        init_confirm
       end
 
       def show(job: nil, failed_job: nil)
@@ -41,18 +43,11 @@ module SolidQueueTui
           render_job_detail(frame, inner)
         end
 
-        if @confirm_action
-          popup_area = area.centered(
-            @tui.constraint_percentage(50),
-            @tui.constraint_length(5)
-          )
-          frame.render_widget(@tui.clear(), popup_area)
-          render_confirm(frame, popup_area)
-        end
+        render_confirm_popup(frame, area) if confirm_mode?
       end
 
       def handle_input(event)
-        if @confirm_action
+        if confirm_mode?
           handle_confirm_input(event)
         else
           handle_normal_input(event)
@@ -60,11 +55,8 @@ module SolidQueueTui
       end
 
       def bindings
-        if @confirm_action
-          [
-            { key: "y", action: "Confirm" },
-            { key: "n/Esc", action: "Cancel" }
-          ]
+        if confirm_mode?
+          confirm_bindings
         else
           bindings = [
             { key: "Esc", action: "Close" },
@@ -81,7 +73,7 @@ module SolidQueueTui
       end
 
       def capturing_input?
-        !!@confirm_action
+        confirm_mode?
       end
 
       def breadcrumb
@@ -118,51 +110,26 @@ module SolidQueueTui
         end
       end
 
-      def handle_confirm_input(event)
-        case event
-        in { type: :key, code: "y" }
-          action = @confirm_action
-          @confirm_action = nil
-          case action
-          when :retry
-            Actions::RetryJob.call(@failed_job.id)
-            hide
-            :refresh
-          when :discard
-            Actions::DiscardJob.call(@failed_job.id)
-            hide
-            :refresh
-          end
-        in { type: :key, code: "n" } | { type: :key, code: "esc" }
-          @confirm_action = nil
-          nil
-        else
-          nil
+      def confirm_message
+        case @confirm_action
+        when :retry
+          "Retry job ##{@failed_job&.job_id} (#{@failed_job&.class_name})? [y/n]"
+        when :discard
+          "Discard job ##{@failed_job&.job_id} (#{@failed_job&.class_name})? This cannot be undone. [y/n]"
         end
       end
 
-      def render_confirm(frame, area)
-        message = case @confirm_action
-                  when :retry
-                    "Retry job ##{@failed_job&.job_id} (#{@failed_job&.class_name})? [y/n]"
-                  when :discard
-                    "Discard job ##{@failed_job&.job_id} (#{@failed_job&.class_name})? This cannot be undone. [y/n]"
-                  end
-
-        frame.render_widget(
-          @tui.paragraph(
-            text: " #{message}",
-            style: @tui.style(fg: :yellow, modifiers: [:bold]),
-            block: @tui.block(
-              title: " Confirm ",
-              title_style: @tui.style(fg: :red, modifiers: [:bold]),
-              borders: [:all],
-              border_type: :rounded,
-              border_style: @tui.style(fg: :red)
-            )
-          ),
-          area
-        )
+      def execute_confirm_action(action)
+        case action
+        when :retry
+          Actions::RetryJob.call(@failed_job.id)
+          hide
+          :refresh
+        when :discard
+          Actions::DiscardJob.call(@failed_job.id)
+          hide
+          :refresh
+        end
       end
 
       def render_failed_detail(frame, area)

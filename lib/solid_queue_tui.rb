@@ -25,6 +25,7 @@ require_relative "solid_queue_tui/components/help_bar"
 
 # View concerns
 require_relative "solid_queue_tui/views/concerns/filterable"
+require_relative "solid_queue_tui/views/concerns/confirmable"
 
 # Views
 require_relative "solid_queue_tui/views/dashboard_view"

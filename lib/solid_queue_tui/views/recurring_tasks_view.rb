@@ -3,13 +3,15 @@
 module SolidQueueTui
   module Views
     class RecurringTasksView
+      include Confirmable
+
       def initialize(tui)
         @tui = tui
         @table_state = RatatuiRuby::TableState.new(nil)
         @table_state.select(0)
         @selected_row = 0
         @tasks = []
-        @confirm_action = nil
+        init_confirm
       end
 
       def update(tasks:)
@@ -19,21 +21,16 @@ module SolidQueueTui
       end
 
       def render(frame, area)
-        if @confirm_action
+        if confirm_mode?
           render_table(frame, area)
-          popup_area = area.centered(
-            @tui.constraint_percentage(50),
-            @tui.constraint_length(5)
-          )
-          frame.render_widget(@tui.clear(), popup_area)
-          render_confirm(frame, popup_area)
+          render_confirm_popup(frame, area)
         else
           render_table(frame, area)
         end
       end
 
       def handle_input(event)
-        if @confirm_action
+        if confirm_mode?
           handle_confirm_input(event)
         else
           handle_normal_input(event)
@@ -46,15 +43,12 @@ module SolidQueueTui
       end
 
       def capturing_input?
-        !!@confirm_action
+        confirm_mode?
       end
 
       def bindings
-        if @confirm_action
-          [
-            { key: "y", action: "Confirm" },
-            { key: "n/Esc", action: "Cancel" }
-          ]
+        if confirm_mode?
+          confirm_bindings
         else
           [
             { key: "j/k", action: "Navigate" },
@@ -86,20 +80,16 @@ module SolidQueueTui
         end
       end
 
-      def handle_confirm_input(event)
-        case event
-        in { type: :key, code: "y" }
-          @confirm_action = nil
-          task = selected_item
-          return nil unless task
-          Actions::EnqueueRecurringTask.call(task.key)
-          :refresh
-        in { type: :key, code: "n" } | { type: :key, code: "esc" }
-          @confirm_action = nil
-          nil
-        else
-          nil
-        end
+      def confirm_message
+        task = selected_item
+        "Run '#{task&.key}' (#{task&.class_name || task&.command}) now? [y/n]"
+      end
+
+      def execute_confirm_action(action)
+        task = selected_item
+        return nil unless task
+        Actions::EnqueueRecurringTask.call(task.key)
+        :refresh
       end
 
       def move_selection(delta)
@@ -150,26 +140,6 @@ module SolidQueueTui
         )
 
         table.render(frame, area, @table_state)
-      end
-
-      def render_confirm(frame, area)
-        task = selected_item
-        message = "Run '#{task&.key}' (#{task&.class_name || task&.command}) now? [y/n]"
-
-        frame.render_widget(
-          @tui.paragraph(
-            text: " #{message}",
-            style: @tui.style(fg: :yellow, modifiers: [:bold]),
-            block: @tui.block(
-              title: " Confirm ",
-              title_style: @tui.style(fg: :red, modifiers: [:bold]),
-              borders: [:all],
-              border_type: :rounded,
-              border_style: @tui.style(fg: :red)
-            )
-          ),
-          area
-        )
       end
 
       def time_ago(time)
