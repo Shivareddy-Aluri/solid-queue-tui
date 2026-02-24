@@ -50,16 +50,13 @@ module SolidQueueTui
 
       def render(frame, area)
         if @confirm_action
-          confirm_area, content_area = @tui.layout_split(
-            area,
-            direction: :vertical,
-            constraints: [
-              @tui.constraint_length(3),
-              @tui.constraint_fill(1)
-            ]
+          render_failed_table(frame, area)
+          popup_area = area.centered(
+            @tui.constraint_percentage(50),
+            @tui.constraint_length(5)
           )
-          render_confirm(frame, confirm_area)
-          render_failed_table(frame, content_area)
+          frame.render_widget(@tui.clear(), popup_area)
+          render_confirm(frame, popup_area)
         elsif filter_mode?
           filter_area, content_area = @tui.layout_split(
             area,
