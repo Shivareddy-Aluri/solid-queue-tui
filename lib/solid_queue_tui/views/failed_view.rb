@@ -5,48 +5,21 @@ module SolidQueueTui
     class FailedView
       include Filterable
       include Confirmable
-
-
-      LOAD_THRESHOLD = 10
+      include Paginatable
 
       def initialize(tui)
         @tui = tui
-        @table_state = RatatuiRuby::TableState.new(nil)
-        @table_state.select(0)
-        @selected_row = 0
-        @failed_jobs = []
-        @total_count = nil
-        @all_loaded = false
+        init_pagination
         init_confirm
         init_filter
       end
 
       def update(failed_jobs:)
-        @failed_jobs = failed_jobs
-        @all_loaded = failed_jobs.size < SolidQueueTui.page_size
-        @selected_row = @selected_row.clamp(0, [@failed_jobs.size - 1, 0].max)
-        @table_state.select(@selected_row)
+        update_items(failed_jobs)
       end
 
       def append(failed_jobs:)
-        @failed_jobs.concat(failed_jobs)
-        @all_loaded = failed_jobs.size < SolidQueueTui.page_size
-      end
-
-      def total_count=(count)
-        @total_count = count
-      end
-
-      def current_offset
-        @failed_jobs.size
-      end
-
-      def reset_pagination!
-        @failed_jobs = []
-        @total_count = nil
-        @all_loaded = false
-        @selected_row = 0
-        @table_state.select(0)
+        append_items(failed_jobs)
       end
 
       def render(frame, area)
@@ -79,11 +52,6 @@ module SolidQueueTui
         end
       end
 
-      def selected_item
-        return nil if @failed_jobs.empty? || @selected_row >= @failed_jobs.size
-        @failed_jobs[@selected_row]
-      end
-
       def bindings
         if confirm_mode?
           confirm_bindings
@@ -111,10 +79,6 @@ module SolidQueueTui
 
       private
 
-      def needs_more?
-        !@all_loaded && @selected_row >= @failed_jobs.size - LOAD_THRESHOLD
-      end
-
       def handle_normal_input(event)
         case event
         in { type: :key, code: "j" } | { type: :key, code: "up" }
@@ -134,7 +98,7 @@ module SolidQueueTui
           @confirm_action = :discard if selected_item
           nil
         in { type: :key, code: "A" }
-          @confirm_action = :retry_all unless @failed_jobs.empty?
+          @confirm_action = :retry_all unless items.empty?
           nil
         in { type: :key, code: "/" }
           enter_filter_mode
@@ -155,7 +119,7 @@ module SolidQueueTui
           job = selected_item
           "Discard job ##{job&.job_id} (#{job&.class_name})? This cannot be undone. [y/n]"
         when :retry_all
-          count = @total_count || @failed_jobs.size
+          count = @total_count || items.size
           label = @filters.empty? ? "failed jobs" : "filtered failed jobs"
           "Retry ALL #{count} #{label}? [y/n]"
         end
@@ -180,25 +144,6 @@ module SolidQueueTui
         end
       end
 
-      def move_selection(delta)
-        return if @failed_jobs.empty?
-        @selected_row = (@selected_row + delta).clamp(0, @failed_jobs.size - 1)
-        @table_state.select(@selected_row)
-        :load_more if needs_more?
-      end
-
-      def jump_to_top
-        @selected_row = 0
-        @table_state.select(0)
-      end
-
-      def jump_to_bottom
-        return if @failed_jobs.empty?
-        @selected_row = @failed_jobs.size - 1
-        @table_state.select(@selected_row)
-        return :load_more if needs_more?
-      end
-
       def render_failed_table(frame, area)
         columns = [
           { key: :id,            label: "ID",         width: 8 },
@@ -209,7 +154,7 @@ module SolidQueueTui
           { key: :failed_at,     label: "FAILED",      width: 12 }
         ]
 
-        rows = @failed_jobs.map do |job|
+        rows = items.map do |job|
           {
             id: job.job_id,
             class_name: job.class_name,

@@ -5,48 +5,21 @@ module SolidQueueTui
     class ScheduledView
       include Filterable
       include Confirmable
-
-
-      LOAD_THRESHOLD = 10
+      include Paginatable
 
       def initialize(tui)
         @tui = tui
-        @table_state = RatatuiRuby::TableState.new(nil)
-        @table_state.select(0)
-        @selected_row = 0
-        @jobs = []
-        @total_count = nil
-        @all_loaded = false
+        init_pagination
         init_confirm
         init_filter
       end
 
       def update(jobs:)
-        @jobs = jobs
-        @all_loaded = jobs.size < SolidQueueTui.page_size
-        @selected_row = @selected_row.clamp(0, [@jobs.size - 1, 0].max)
-        @table_state.select(@selected_row)
+        update_items(jobs)
       end
 
       def append(jobs:)
-        @jobs.concat(jobs)
-        @all_loaded = jobs.size < SolidQueueTui.page_size
-      end
-
-      def total_count=(count)
-        @total_count = count
-      end
-
-      def current_offset
-        @jobs.size
-      end
-
-      def reset_pagination!
-        @jobs = []
-        @total_count = nil
-        @all_loaded = false
-        @selected_row = 0
-        @table_state.select(0)
+        append_items(jobs)
       end
 
       def render(frame, area)
@@ -79,11 +52,6 @@ module SolidQueueTui
         end
       end
 
-      def selected_item
-        return nil if @jobs.empty? || @selected_row >= @jobs.size
-        @jobs[@selected_row]
-      end
-
       def capturing_input?
         filter_mode? || confirm_mode?
       end
@@ -110,10 +78,6 @@ module SolidQueueTui
       end
 
       private
-
-      def needs_more?
-        !@all_loaded && @selected_row >= @jobs.size - LOAD_THRESHOLD
-      end
 
       def handle_normal_input(event)
         case event
@@ -169,25 +133,6 @@ module SolidQueueTui
         end
       end
 
-      def move_selection(delta)
-        return if @jobs.empty?
-        @selected_row = (@selected_row + delta).clamp(0, @jobs.size - 1)
-        @table_state.select(@selected_row)
-        :load_more if needs_more?
-      end
-
-      def jump_to_top
-        @selected_row = 0
-        @table_state.select(0)
-      end
-
-      def jump_to_bottom
-        return if @jobs.empty?
-        @selected_row = @jobs.size - 1
-        @table_state.select(@selected_row)
-        return :load_more if needs_more?
-      end
-
       def render_table(frame, area)
         columns = [
           { key: :id,           label: "ID",          width: 8 },
@@ -200,7 +145,7 @@ module SolidQueueTui
         ]
 
         now = Time.now.utc
-        rows = @jobs.map do |job|
+        rows = items.map do |job|
           delayed = job.scheduled_at && job.scheduled_at < now
           {
             id: job.id,
