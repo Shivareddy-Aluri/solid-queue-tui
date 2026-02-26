@@ -10,13 +10,17 @@ module SolidQueueTui
         @tui = tui
         @job = nil
         @failed_job = nil
+        @process = nil
+        @running_jobs = []
         @scroll_offset = 0
         init_confirm
       end
 
-      def show(job: nil, failed_job: nil)
+      def show(job: nil, failed_job: nil, process: nil, running_jobs: [])
         @job = job
         @failed_job = failed_job
+        @process = process
+        @running_jobs = running_jobs
         @scroll_offset = 0
         @active = true
       end
@@ -25,6 +29,8 @@ module SolidQueueTui
         @active = false
         @job = nil
         @failed_job = nil
+        @process = nil
+        @running_jobs = []
         @confirm_action = nil
       end
 
@@ -40,6 +46,8 @@ module SolidQueueTui
 
         if @failed_job
           render_failed_detail(frame, inner)
+        elsif @process
+          render_process_detail(frame, inner)
         elsif @job
           render_job_detail(frame, inner)
         end
@@ -80,6 +88,8 @@ module SolidQueueTui
       def breadcrumb
         if @failed_job
           "failed:#{@failed_job.job_id}"
+        elsif @process
+          "process:#{@process.id}"
         elsif @job
           "jobs:#{@job.id}"
         else
@@ -234,6 +244,104 @@ module SolidQueueTui
               borders: [:all],
               border_type: :rounded,
               border_style: @tui.style(fg: :cyan),
+              style: @tui.style(fg: :white)
+            )
+          ),
+          area
+        )
+      end
+
+      def render_process_detail(frame, area)
+        lines = []
+
+        # Section 1: Process Info
+        lines << section_header("Process Info")
+        lines << detail_line("ID", @process.id.to_s)
+        lines << detail_line("Kind", @process.kind)
+        lines << detail_line("PID", @process.pid.to_s)
+        lines << detail_line("Hostname", @process.hostname || "n/a")
+        lines << detail_line("Name", @process.name || "n/a")
+        lines << empty_line
+
+        # Section 2: Status
+        lines << section_header("Status")
+        alive = @process.alive?
+        lines << @tui.text_line(spans: [
+          @tui.text_span(content: "  #{"Status".ljust(16)}", style: @tui.style(fg: :dark_gray)),
+          @tui.text_span(content: alive ? "alive" : "dead",
+                         style: @tui.style(fg: alive ? :green : :red, modifiers: [:bold]))
+        ])
+        lines << detail_line("Last Heartbeat", time_ago(@process.last_heartbeat_at))
+        lines << detail_line("Uptime", format_duration(@process.uptime))
+        lines << detail_line("Created At", format_time(@process.created_at))
+        lines << empty_line
+
+        # Section 3: Configuration
+        lines << section_header("Configuration")
+        queues_str = Array(@process.queues).join(", ")
+        lines << detail_line("Queues", queues_str.empty? ? "n/a" : queues_str)
+        lines << detail_line("Threads", (@process.thread_count || "n/a").to_s)
+        if @process.metadata.is_a?(Hash) && @process.metadata["polling_interval"]
+          lines << detail_line("Poll Interval", "#{@process.metadata["polling_interval"]}s")
+        end
+        lines << detail_line("Supervisor ID", (@process.supervisor_id || "n/a").to_s)
+        lines << empty_line
+
+        # Section 4: Running Jobs (Workers only)
+        if @process.kind == "Worker"
+          lines << section_header("Running Jobs (#{@running_jobs.size})")
+          if @running_jobs.empty?
+            lines << @tui.text_line(spans: [
+              @tui.text_span(content: "  Idle — no running jobs", style: @tui.style(fg: :dark_gray))
+            ])
+          else
+            lines << @tui.text_line(spans: [
+              @tui.text_span(
+                content: "  #{"ID".ljust(8)}#{"CLASS".ljust(30)}#{"QUEUE".ljust(16)}STARTED",
+                style: @tui.style(fg: :cyan, modifiers: [:bold])
+              )
+            ])
+            @running_jobs.each do |rj|
+              lines << @tui.text_line(spans: [
+                @tui.text_span(content: "  #{rj.job_id.to_s.ljust(8)}", style: @tui.style(fg: :white)),
+                @tui.text_span(content: rj.class_name.to_s.ljust(30), style: @tui.style(fg: :yellow)),
+                @tui.text_span(content: rj.queue_name.to_s.ljust(16), style: @tui.style(fg: :white)),
+                @tui.text_span(content: time_ago(rj.started_at), style: @tui.style(fg: :dark_gray))
+              ])
+            end
+          end
+          lines << empty_line
+        end
+
+        # Section 5: Raw Metadata
+        if @process.metadata.is_a?(Hash) && !@process.metadata.empty?
+          lines << section_header("Raw Metadata")
+          meta_str = JSON.pretty_generate(@process.metadata) rescue @process.metadata.to_s
+          meta_str.split("\n").each do |meta_line|
+            lines << @tui.text_line(spans: [
+              @tui.text_span(content: "  #{meta_line}", style: @tui.style(fg: :white))
+            ])
+          end
+        end
+
+        visible_lines = lines.drop(@scroll_offset)
+
+        border_color = @process.alive? ? :green : :red
+        title_text = " #{@process.kind} ##{@process.id} — PID: #{@process.pid} "
+
+        frame.render_widget(
+          @tui.paragraph(
+            text: visible_lines,
+            block: @tui.block(
+              title: title_text,
+              title_style: @tui.style(fg: border_color, modifiers: [:bold]),
+              titles: [
+                { content: " Esc:Close  j/k:Scroll ",
+                  position: :bottom, alignment: :right }
+              ],
+              borders: [:all],
+              border_type: :rounded,
+              border_style: @tui.style(fg: border_color),
               style: @tui.style(fg: :white)
             )
           ),

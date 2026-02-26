@@ -29,6 +29,29 @@ module SolidQueueTui
         end
       end
 
+      RunningJob = Struct.new(
+        :job_id, :class_name, :queue_name, :started_at,
+        keyword_init: true
+      )
+
+      def self.fetch_running_jobs(process_id:)
+        SolidQueue::ClaimedExecution
+          .where(process_id: process_id)
+          .joins(:job).includes(:job)
+          .order(:created_at)
+          .map do |ce|
+            job = ce.job
+            RunningJob.new(
+              job_id: job.id,
+              class_name: job.class_name,
+              queue_name: job.queue_name,
+              started_at: ce.created_at
+            )
+          end
+      rescue => e
+        []
+      end
+
       def self.fetch
         SolidQueue::Process.where(kind: "Worker").order(:id).map do |proc|
           Process.new(

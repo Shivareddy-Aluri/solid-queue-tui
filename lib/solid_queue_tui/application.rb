@@ -260,6 +260,9 @@ module SolidQueueTui
         @job_detail.show(failed_job: failed_job || item)
       when VIEW_IN_PROGRESS, VIEW_BLOCKED, VIEW_SCHEDULED, VIEW_FINISHED
         @job_detail.show(job: item) if item.respond_to?(:id)
+      when VIEW_WORKERS
+        running_jobs = Data::ProcessesQuery.fetch_running_jobs(process_id: item.id)
+        @job_detail.show(process: item, running_jobs: running_jobs)
       end
     end
 
