@@ -2,6 +2,8 @@
 
 A terminal UI dashboard for [Solid Queue](https://github.com/rails/solid_queue), built with [ratatui_ruby](https://www.ratatui-ruby.dev/). Monitor and manage your Solid Queue jobs without leaving the terminal.
 
+[View all screenshots](screenshots/SCREENSHOTS.md)
+
 ![Solid Queue TUI Demo](screenshots/demo.gif)
 
 ## Requirements
