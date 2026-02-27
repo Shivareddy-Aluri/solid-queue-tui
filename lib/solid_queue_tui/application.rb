@@ -311,8 +311,9 @@ module SolidQueueTui
         current_view.update(jobs: jobs)
       when VIEW_FINISHED
         f = current_view.filters
-        current_view.total_count = Data::JobsQuery.count(status: "completed", filter: f[:class_name], queue: f[:queue])
-        jobs = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: 0)
+        since = current_view.date_range_start
+        current_view.total_count = Data::JobsQuery.count(status: "completed", filter: f[:class_name], queue: f[:queue], since: since)
+        jobs = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], since: since, limit: SolidQueueTui.page_size, offset: 0)
         current_view.update(jobs: jobs)
       when VIEW_RECURRING
         tasks = Data::RecurringTasksQuery.fetch
@@ -355,7 +356,8 @@ module SolidQueueTui
         view.append(jobs: more)
       when VIEW_FINISHED
         f = view.filters
-        more = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], limit: SolidQueueTui.page_size, offset: offset)
+        since = view.date_range_start
+        more = Data::JobsQuery.fetch(status: "completed", filter: f[:class_name], queue: f[:queue], since: since, limit: SolidQueueTui.page_size, offset: offset)
         view.append(jobs: more)
       end
     rescue => e
@@ -491,7 +493,7 @@ module SolidQueueTui
         empty_line,
         help_section("Actions"),
         help_line("r", "Refresh data"),
-        help_line("/", "Filter by class name"),
+        help_line("/", "Filter (class, queue, date range)"),
         help_line("c", "Clear active filter"),
         help_line("R", "Retry failed job (in Failed view)"),
         help_line("D", "Discard failed job (in Failed view)"),

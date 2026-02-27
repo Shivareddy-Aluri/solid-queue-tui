@@ -11,26 +11,26 @@ module SolidQueueTui
         keyword_init: true
       )
 
-      def self.fetch(status:, filter: nil, queue: nil, limit: 100, offset: 0)
+      def self.fetch(status:, filter: nil, queue: nil, since: nil, limit: 100, offset: 0)
         case status
         when "pending"   then fetch_pending(queue: queue, filter: filter, limit: limit, offset: offset)
         when "claimed"   then fetch_claimed(filter: filter, queue: queue, limit: limit, offset: offset)
         when "blocked"   then fetch_blocked(filter: filter, queue: queue, limit: limit, offset: offset)
         when "scheduled" then fetch_scheduled(filter: filter, queue: queue, limit: limit, offset: offset)
-        when "completed" then fetch_finished(filter: filter, queue: queue, limit: limit, offset: offset)
+        when "completed" then fetch_finished(filter: filter, queue: queue, since: since, limit: limit, offset: offset)
         else []
         end
       rescue => e
         []
       end
 
-      def self.count(status:, filter: nil, queue: nil)
+      def self.count(status:, filter: nil, queue: nil, since: nil)
         case status
         when "pending"   then count_pending(queue: queue, filter: filter)
         when "claimed"   then count_scope(SolidQueue::ClaimedExecution.joins(:job), filter: filter, queue: queue)
         when "blocked"   then count_scope(SolidQueue::BlockedExecution.joins(:job), filter: filter, queue: queue)
         when "scheduled" then count_scope(SolidQueue::ScheduledExecution.joins(:job), filter: filter, queue: queue)
-        when "completed" then count_finished(filter: filter, queue: queue)
+        when "completed" then count_finished(filter: filter, queue: queue, since: since)
         else 0
         end
       rescue => e
@@ -133,10 +133,11 @@ module SolidQueueTui
         end
       end
 
-      def self.fetch_finished(filter: nil, queue: nil, limit: 100, offset: 0)
+      def self.fetch_finished(filter: nil, queue: nil, since: nil, limit: 100, offset: 0)
         scope = SolidQueue::Job.finished
         scope = scope.where(queue_name: queue) if queue
         scope = scope.where("class_name LIKE ?", "%#{filter}%") if filter.present?
+        scope = scope.where("finished_at >= ?", since) if since
         scope = scope.order(finished_at: :desc).offset(offset).limit(limit)
 
         scope.map do |job|
@@ -165,10 +166,11 @@ module SolidQueueTui
         scope.count
       end
 
-      private_class_method def self.count_finished(filter: nil, queue: nil)
+      private_class_method def self.count_finished(filter: nil, queue: nil, since: nil)
         scope = SolidQueue::Job.finished
         scope = scope.where(queue_name: queue) if queue
         scope = scope.where("class_name LIKE ?", "%#{filter}%") if filter.present?
+        scope = scope.where("finished_at >= ?", since) if since
         scope.count
       end
     end
