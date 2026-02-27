@@ -65,8 +65,9 @@ module SolidQueueTui
             { key: "R", action: "Retry" },
             { key: "D", action: "Discard" },
             { key: "A", action: "Retry All" },
-            { key: "/", action: "Filter" }
-          ]
+            { key: "/", action: "Filter" },
+            clear_filter_binding
+          ].compact
         end
       end
 
@@ -104,7 +105,7 @@ module SolidQueueTui
         in { type: :key, code: "/" }
           enter_filter_mode
           nil
-        in { type: :key, code: "esc" }
+        in { type: :key, code: "c" }
           clear_filter
         else
           nil

@@ -492,6 +492,7 @@ module SolidQueueTui
         help_section("Actions"),
         help_line("r", "Refresh data"),
         help_line("/", "Filter by class name"),
+        help_line("c", "Clear active filter"),
         help_line("R", "Retry failed job (in Failed view)"),
         help_line("D", "Discard failed job (in Failed view)"),
         help_line("A", "Retry all failed jobs"),

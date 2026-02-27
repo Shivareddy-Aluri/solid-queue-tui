@@ -116,6 +116,10 @@ module SolidQueueTui
         "#{base_title} (#{parts.join(', ')})"
       end
 
+      def clear_filter_binding
+        @filters.empty? ? nil : { key: "c", action: "Clear Filter" }
+      end
+
       def filter_bindings
         [
           { key: "Tab", action: "Next Field" },

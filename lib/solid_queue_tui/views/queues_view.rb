@@ -101,9 +101,10 @@ module SolidQueueTui
               { key: "j/k", action: "Navigate" },
               { key: "Enter", action: "Detail" },
               { key: "/", action: "Filter" },
+              clear_filter_binding,
               { key: "Esc", action: "Back" },
               { key: "G/g", action: "Bottom/Top" }
-            ]
+            ].compact
           end
         end
       end
@@ -233,6 +234,8 @@ module SolidQueueTui
         in { type: :key, code: "/" }
           enter_filter_mode
           nil
+        in { type: :key, code: "c" }
+          clear_filter
         in { type: :key, code: "esc" }
           exit_detail_mode
         else
