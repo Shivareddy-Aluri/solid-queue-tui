@@ -7,10 +7,16 @@ module SolidQueueTui
       include Paginatable
       include FormattingHelpers
 
+      FINISHED_FILTER_FIELDS = (TEXT_FIELDS + [DATE_FIELD]).freeze
+
       def initialize(tui)
         @tui = tui
         init_pagination
         init_filter
+      end
+
+      def filter_fields
+        FINISHED_FILTER_FIELDS
       end
 
       def update(jobs:)
