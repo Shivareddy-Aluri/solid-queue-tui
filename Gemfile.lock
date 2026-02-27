@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    solid_queue_tui (0.1.2)
+    solid_queue_tui (0.1.3)
       railties (>= 7.1)
       ratatui_ruby (~> 1.3)
       solid_queue (>= 1.0)

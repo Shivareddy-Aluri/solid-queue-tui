@@ -5,6 +5,7 @@ require_relative "solid_queue_tui/formatting_helpers"
 
 # Data layer
 require_relative "solid_queue_tui/data/stats"
+require_relative "solid_queue_tui/data/hourly_stats_query"
 require_relative "solid_queue_tui/data/jobs_query"
 require_relative "solid_queue_tui/data/queues_query"
 require_relative "solid_queue_tui/data/processes_query"
