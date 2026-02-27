@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir["lib/**/*", "exe/*", "LICENSE.txt"]
   spec.bindir = "exe"
-  spec.executables = ["sqtui"]
+  spec.executables = ["qtop", "sqtui"]
   spec.require_paths = ["lib"]
 
   spec.add_dependency "ratatui_ruby", "~> 1.3"

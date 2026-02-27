@@ -15,7 +15,7 @@ module SolidQueueTui
       options = {}
 
       OptionParser.new do |opts|
-        opts.banner = "Usage: sqtui [options]"
+        opts.banner = "Usage: qtop [options]"
         opts.separator ""
         opts.separator "Options:"
 
@@ -36,7 +36,7 @@ module SolidQueueTui
         end
 
         opts.on("-v", "--version", "Show version") do
-          puts "sqtui v#{SolidQueueTui::VERSION}"
+          puts "qtop v#{SolidQueueTui::VERSION}"
           exit
         end
 

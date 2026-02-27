@@ -32,7 +32,7 @@ bundle install
 Run from your **Rails application's root directory**:
 
 ```bash
-bundle exec sqtui
+bundle exec qtop
 ```
 
 The TUI boots your Rails environment (via `config/environment.rb`), connects to the same database your app uses, and queries Solid Queue tables through its ActiveRecord models.
@@ -43,12 +43,14 @@ You can also launch via a rake task:
 bundle exec rake solid_queue_tui:start
 ```
 
+> **Note:** The legacy `sqtui` command still works for backwards compatibility.
+
 ### Configuration
 
 Configure via CLI flags:
 
 ```bash
-bundle exec sqtui --page-size 50 --refresh-interval 5
+bundle exec qtop --page-size 50 --refresh-interval 5
 ```
 
 | Flag | Default | Description |

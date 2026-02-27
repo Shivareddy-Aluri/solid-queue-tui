@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Boot the host Rails application's environment.
+# This ensures ActiveRecord, Solid Queue models, and the database
+# connection pool are fully loaded before the TUI starts.
+env_file = File.join(Dir.pwd, "config", "environment.rb")
+
+unless File.exist?(env_file)
+  $stderr.puts "Error: config/environment.rb not found in #{Dir.pwd}"
+  $stderr.puts ""
+  $stderr.puts "qtop must be run from your Rails application's root directory."
+  $stderr.puts "Make sure solid_queue_tui is in your Gemfile and Solid Queue is configured."
+  exit 1
+end
+
+require env_file
+
+# Logs must never hit STDOUT/STDERR — that would corrupt the TUI.
+# If a log/ directory exists (traditional Rails), write there.
+# Otherwise (Rails 8 defaults), silence logging.
+#TODO: figure out logging for rails 8, docker
+
+log_dir = File.join(Dir.pwd, "log")
+if Dir.exist?(log_dir)
+  log_file = File.join(log_dir, "#{Rails.env}.log")
+  tui_logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(log_file))
+  tui_logger.push_tags("SQTUI")
+else
+  tui_logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(File::NULL))
+end
+ActiveRecord::Base.logger = tui_logger
+Rails.logger = tui_logger
+
+SolidQueueTui::CLI.run(ARGV)

@@ -16,7 +16,7 @@ The `--dev` flag enables **hot-reload** — edit any file under `lib/` and the T
 
 ```bash
 cd test/dummy_app
-bundle exec sqtui --dev
+bundle exec qtop --dev
 ```
 
 ## Seeding test data
@@ -64,5 +64,5 @@ Rails.logger.info("DEBUG: selected_row=#{@selected_row}, jobs=#{@jobs.size}")
 Then watch the log file with `tail -f`. You can also set `DEBUG=1` for hot-reload error messages:
 
 ```bash
-DEBUG=1 bundle exec sqtui --dev
+DEBUG=1 bundle exec qtop --dev
 ```
