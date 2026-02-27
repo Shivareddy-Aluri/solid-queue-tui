@@ -175,7 +175,7 @@ module SolidQueueTui
         datasets = []
         if enqueued_data.any?
           datasets << RatatuiRuby::Widgets::Dataset.new(
-            name: "Enqueued",
+            name: "",
             data: enqueued_data,
             style: @tui.style(fg: :cyan),
             marker: :braille,
@@ -185,7 +185,7 @@ module SolidQueueTui
 
         if processed_data.any?
           datasets << RatatuiRuby::Widgets::Dataset.new(
-            name: "Processed",
+            name: "",
             data: processed_data,
             style: @tui.style(fg: :green),
             marker: :braille,
@@ -195,7 +195,7 @@ module SolidQueueTui
 
         if failed_data.any?
           datasets << RatatuiRuby::Widgets::Dataset.new(
-            name: "Failed",
+            name: "",
             data: failed_data,
             style: @tui.style(fg: :red),
             marker: :braille,
@@ -222,11 +222,15 @@ module SolidQueueTui
           block: @tui.block(
             title: " Throughput (24h) ",
             title_style: @tui.style(fg: :cyan, modifiers: [:bold]),
+            titles: [
+              { content: " ● Enqueued ", position: :top, alignment: :right, style: @tui.style(fg: :cyan) },
+              { content: "● Processed ", position: :top, alignment: :right, style: @tui.style(fg: :green) },
+              { content: "● Failed ", position: :top, alignment: :right, style: @tui.style(fg: :red) }
+            ],
             borders: [:all],
             border_type: :rounded,
             border_style: @tui.style(fg: :dark_gray)
-          ),
-          legend_position: :top_right
+          )
         )
 
         frame.render_widget(chart, area)
