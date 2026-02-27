@@ -135,7 +135,7 @@ module SolidQueueTui
       def render_metrics(frame, area)
         return unless @stats
 
-        chart_area, summary_area = @tui.layout_split(
+        chart_area, bottom_area = @tui.layout_split(
           area,
           direction: :vertical,
           constraints: [
@@ -144,8 +144,18 @@ module SolidQueueTui
           ]
         )
 
+        queue_area, summary_area = @tui.layout_split(
+          bottom_area,
+          direction: :horizontal,
+          constraints: [
+            @tui.constraint_percentage(50),
+            @tui.constraint_percentage(50)
+          ]
+        )
+
         render_throughput_chart(frame, chart_area)
-        render_queue_summary(frame, summary_area)
+        render_queue_depth(frame, queue_area)
+        render_summary(frame, summary_area)
       end
 
       def render_throughput_chart(frame, area)
@@ -236,10 +246,9 @@ module SolidQueueTui
         frame.render_widget(chart, area)
       end
 
-      def render_queue_summary(frame, area)
+      def render_queue_depth(frame, area)
         lines = []
 
-        # Queue depth bars (top 5 by depth)
         queue_depths = @stats.queue_depths
         if queue_depths.any?
           total_depth = queue_depths.values.sum
@@ -248,7 +257,7 @@ module SolidQueueTui
           remaining = sorted.drop(5)
           max_depth = top_queues.first&.last || 1
 
-          top_queues.each do |name, count|
+          top_queues.each_with_index do |(name, count), idx|
             pct = total_depth > 0 ? (count.to_f / total_depth * 100).round(1) : 0
             bar_width = 20
             filled = max_depth > 0 ? (count.to_f / max_depth * bar_width).round : 0
@@ -260,6 +269,12 @@ module SolidQueueTui
               @tui.text_span(content: "#{"░" * empty_bar}", style: @tui.style(fg: :dark_gray)),
               @tui.text_span(content: "  #{format_number(count).rjust(6)} (#{pct}%)", style: @tui.style(fg: :dark_gray))
             ])
+
+            if idx < top_queues.size - 1
+              lines << @tui.text_line(spans: [
+                @tui.text_span(content: "", style: @tui.style(fg: :dark_gray))
+              ])
+            end
           end
 
           if remaining.any?
@@ -276,37 +291,59 @@ module SolidQueueTui
           ])
         end
 
+        frame.render_widget(
+          @tui.paragraph(
+            text: lines,
+            block: @tui.block(
+              title: " Queue Depth ",
+              title_style: @tui.style(fg: :cyan, modifiers: [:bold]),
+              borders: [:all],
+              border_type: :rounded,
+              border_style: @tui.style(fg: :dark_gray)
+            )
+          ),
+          area
+        )
+      end
+
+      def render_summary(frame, area)
+        lines = []
+
+        # Throughput totals (24h)
+        enq_total = @stats.enqueued_per_hour&.total || 0
+        proc_total = @stats.processed_per_hour&.total || 0
+        fail_total = @stats.failed_per_hour&.total || 0
+
+        [
+          ["Enqueued", enq_total, :cyan],
+          ["Processed", proc_total, :green],
+          ["Failed", fail_total, :red]
+        ].each do |label, value, color|
+          lines << @tui.text_line(spans: [
+            @tui.text_span(content: "  #{label.ljust(12)}", style: @tui.style(fg: color)),
+            @tui.text_span(content: format_number(value).rjust(10), style: @tui.style(fg: :white, modifiers: [:bold]))
+          ])
+        end
+
         # Separator
         lines << @tui.text_line(spans: [
           @tui.text_span(content: "", style: @tui.style(fg: :dark_gray))
         ])
 
-        # Throughput totals
-        enq_total = @stats.enqueued_per_hour&.total || 0
-        proc_total = @stats.processed_per_hour&.total || 0
-        fail_total = @stats.failed_per_hour&.total || 0
-
-        lines << @tui.text_line(spans: [
-          @tui.text_span(content: "  24h ", style: @tui.style(fg: :dark_gray)),
-          @tui.text_span(content: "Enqueued: ", style: @tui.style(fg: :cyan)),
-          @tui.text_span(content: format_number(enq_total), style: @tui.style(fg: :white, modifiers: [:bold])),
-          @tui.text_span(content: "  Processed: ", style: @tui.style(fg: :green)),
-          @tui.text_span(content: format_number(proc_total), style: @tui.style(fg: :white, modifiers: [:bold])),
-          @tui.text_span(content: "  Failed: ", style: @tui.style(fg: :red)),
-          @tui.text_span(content: format_number(fail_total), style: @tui.style(fg: :white, modifiers: [:bold]))
-        ])
-
-        # Overall summary + completion bar
-        lines << @tui.text_line(spans: [
-          @tui.text_span(content: "  Total: ", style: @tui.style(fg: :dark_gray)),
-          @tui.text_span(content: format_number(@stats.total_jobs), style: @tui.style(fg: :white, modifiers: [:bold])),
-          @tui.text_span(content: "   Completed: ", style: @tui.style(fg: :dark_gray)),
-          @tui.text_span(content: format_number(@stats.completed_jobs), style: @tui.style(fg: :green, modifiers: [:bold]))
-        ])
+        # Overall totals + completion bar
+        [
+          ["Total", @stats.total_jobs, :white],
+          ["Completed", @stats.completed_jobs, :green]
+        ].each do |label, value, color|
+          lines << @tui.text_line(spans: [
+            @tui.text_span(content: "  #{label.ljust(12)}", style: @tui.style(fg: :dark_gray)),
+            @tui.text_span(content: format_number(value).rjust(10), style: @tui.style(fg: color, modifiers: [:bold]))
+          ])
+        end
 
         if @stats.total_jobs > 0
           ratio = @stats.completed_jobs.to_f / @stats.total_jobs
-          bar_w = 40
+          bar_w = 30
           filled = (ratio * bar_w).round
           empty_bar = bar_w - filled
 
@@ -322,7 +359,7 @@ module SolidQueueTui
           @tui.paragraph(
             text: lines,
             block: @tui.block(
-              title: " Queue Depth & Summary ",
+              title: " Summary ",
               title_style: @tui.style(fg: :cyan, modifiers: [:bold]),
               borders: [:all],
               border_type: :rounded,
